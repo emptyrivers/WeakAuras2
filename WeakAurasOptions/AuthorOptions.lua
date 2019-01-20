@@ -16,6 +16,7 @@
     width (required) -> number between 0.1 and 2 (softMin of 0.5). Determines the width of the option.
     useDesc (optional) -> bool. If false, then the tooltip will not be used.
     desc (optional) -> string to be displayed in the option tooltip
+    path (required) -> table. Represents the location of the option, used for determining Collapsed status, and moving the option around
   When options are merged together (i.e. when the user multiselects and then opens the custom options tab), there is one additonal field:
     references -> childID <=> optionID map, used to dereference to the proper option table in setters
   Supported option types, and additional fields that each type supports/requires:
@@ -1308,12 +1309,15 @@ typeControlAdders = {
         if option[references] then
         else
           local index =  #option.subOptions + 1
+          local subPath = CopyTable(option.path)
+          tinsert(subPath, index)
           option.subOptions[index] = {
             type = "toggle",
             key  = prefix .. i .. "subOption" .. index,
             name = L["Sub Option %i"]:format(index),
             default = false,
             width = 1,
+            path = subPath
           }
           WeakAuras.Add(data)
           WeakAuras.ReloadTriggerOptions(data)
@@ -1331,7 +1335,17 @@ typeControlAdders = {
   end,
 }
 
-local function up(data, option, index)
+local function adjustPath(option, depth, change)
+  option.path[depth] = option.path[depth] + change
+  if option.subOptions then
+    for _, subOption in ipairs(option.subOptions) do
+      adjustPath(subOption, depth, change)
+    end
+  end
+end
+
+local function up(data, options, index)
+  local option = options[index]
   if option[references] then
     return function()
       for _, optionID in pairs(option[references]) do
@@ -1354,14 +1368,17 @@ local function up(data, option, index)
     end,
     function()
       WeakAuras.MoveCollapseDataUp(data.id, "author", index)
-      data.authorOptions[index], data.authorOptions[index - 1] = data.authorOptions[index - 1], data.authorOptions[index]
+      adjustPath(option, #option.path, -1)
+      adjustPath(options[index - 1], #options[index - 1].path, 1)
+      options[index], options[index - 1] = options[index - 1], options[index]
       WeakAuras.Add(data)
       WeakAuras.ReloadTriggerOptions(data)
     end
   end
 end
 
-local function down(data, option, index)
+local function down(data, options, index)
+  local option = options[index]
   if option[references] then
     return function()
       for childID, optionID in pairs(option[references]) do
@@ -1385,6 +1402,8 @@ local function down(data, option, index)
     end,
     function()
       WeakAuras.MoveCollapseDataDown(data.id, "author", index)
+      adjustPath(option, #option.path, 1)
+      adjustPath(options[index + 1], #options[index + 1].path, -1)
       data.authorOptions[index], data.authorOptions[index + 1] = data.authorOptions[index + 1], data.authorOptions[index]
       WeakAuras.Add(data)
       WeakAuras.ReloadTriggerOptions(data)
@@ -1392,7 +1411,8 @@ local function down(data, option, index)
   end
 end
 
-local function delete(data, option, index)
+local function delete(data, options, index)
+  local option = options[index]
   if option[references] then
     return function()
       for childID, optionID in pairs(option[references]) do
@@ -1406,6 +1426,9 @@ local function delete(data, option, index)
   else
     return function()
       WeakAuras.RemoveCollapsed(data.id, "author", index)
+      for i = index + 1, #data.authorOptions do
+        adjustPath(options, #option.path, -1)
+      end
       tremove(data.authorOptions, index)
       WeakAuras.Add(data)
       WeakAuras.ReloadTriggerOptions(data)
@@ -1413,7 +1436,8 @@ local function delete(data, option, index)
   end
 end
 
-local function duplicate(data, option, index)
+local function duplicate(data, options, index)
+  local option = options[index]
   if option[references] then
     return function()
       for childID, optionID in pairs(option[references]) do
@@ -1429,15 +1453,18 @@ local function duplicate(data, option, index)
     return function()
       WeakAuras.InsertCollapsed(data.id, "author", index + 1)
       tinsert(data.authorOptions, index + 1, CopyTable(data.authorOptions[index]))
+      for i = index + 1, #data.authorOptions do
+        adjustPath(options[i], #option.path, 1)
+      end
       WeakAuras.Add(data)
       WeakAuras.ReloadTriggerOptions(data)
     end
   end
 end
 
-function addAuthorModeOption(authorOptions, args, data, order, prefix, i, keyConflicts)
+function addAuthorModeOption(options, args, data, order, prefix, i, keyConflicts)
   -- add header controls
-  local option = authorOptions[i]
+  local option = options[i]
 
   local collapsed = false
   if option[references] then
@@ -1449,7 +1476,7 @@ function addAuthorModeOption(authorOptions, args, data, order, prefix, i, keyCon
       end
     end
   else
-    collapsed = WeakAuras.IsCollapsed(data.id, "author", i, true)
+    collapsed = WeakAuras.IsCollapsed(data.id, "author", option.path, true)
   end
 
   args[prefix .. i .. "collapse"] = {
@@ -1469,7 +1496,7 @@ function addAuthorModeOption(authorOptions, args, data, order, prefix, i, keyCon
         end
         WeakAuras.ReloadTriggerOptions(data[0])
       else
-        WeakAuras.SetCollapsed(data.id, "author", i, not collapsed)
+        WeakAuras.SetCollapsed(data.id, "author", option.path, not collapsed)
         WeakAuras.ReloadTriggerOptions(data)
       end
     end,
@@ -1493,7 +1520,7 @@ function addAuthorModeOption(authorOptions, args, data, order, prefix, i, keyCon
   }
   order = order + 1
 
-  local upDisable, upFunc = up(data, option, i)
+  local upDisable, upFunc = up(data, options, i)
   args[prefix .. i .. "up"] = {
     type = "execute",
     width = 0.15,
@@ -1508,7 +1535,7 @@ function addAuthorModeOption(authorOptions, args, data, order, prefix, i, keyCon
   }
   order = order + 1
 
-  local downDisable, downFunc = down(data, option, i)
+  local downDisable, downFunc = down(data, options, i)
   args[prefix .. i .. "down"] = {
     type = "execute",
     width = 0.15,
@@ -1528,7 +1555,7 @@ function addAuthorModeOption(authorOptions, args, data, order, prefix, i, keyCon
     width = 0.15,
     name = L["Duplicate"],
     order = order,
-    func = duplicate(data, option, i),
+    func = duplicate(data, options, i),
     image = "Interface\\AddOns\\WeakAuras\\Media\\Textures\\duplicate",
     imageWidth = 24,
     imageHeight = 24,
@@ -1541,7 +1568,7 @@ function addAuthorModeOption(authorOptions, args, data, order, prefix, i, keyCon
     width = 0.15,
     name = L["Delete"],
     order = order,
-    func = delete(data, option, i),
+    func = delete(data, options, i),
     image = "Interface\\AddOns\\WeakAuras\\Media\\Textures\\delete",
     imageWidth = 24,
     imageHeight = 24,
@@ -1954,6 +1981,7 @@ function WeakAuras.GetAuthorOptions(data, args, startorder)
               default = false,
               width = 1,
               useDesc = false,
+              path = {1},
             }
             WeakAuras.SetCollapsed(childData.id, "author", i, false)
             WeakAuras.Add(childData)
@@ -2088,6 +2116,7 @@ function WeakAuras.GetAuthorOptions(data, args, startorder)
             name = L["Option %i"]:format(i),
             default = false,
             width = 1,
+            path = {i},
           }
           WeakAuras.SetCollapsed(data.id, "author", i, false)
           WeakAuras.Add(data)
