@@ -1369,7 +1369,7 @@ local function duplicate(data, option, index)
   end
 end
 
-local function addControlsForOption(authorOptions, args, data, order, i, keyConflicts)
+local function addAuthorModeOption(authorOptions, args, data, order, i, keyConflicts)
   -- add header controls
   local option = authorOptions[i]
 
@@ -1858,7 +1858,7 @@ function WeakAuras.GetAuthorOptions(data, args, startorder)
     if isAuthorMode then
       local order = startorder + 2
       for i = 1, #mergedOptions do
-        order = addControlsForOption(mergedOptions, args, allData, order, i, keyConflicts)
+        order = addAuthorModeOption(mergedOptions, args, allData, order, i, keyConflicts)
       end
       args["addOption"] = {
         type = "execute",
@@ -1994,7 +1994,7 @@ function WeakAuras.GetAuthorOptions(data, args, startorder)
       order = order + 1
       local keyConflicts = findConflictingKeys(authorOptions)
       for i = 1, #authorOptions do
-        order = addControlsForOption(authorOptions, args, data, order, i, keyConflicts)
+        order = addAuthorModeOption(authorOptions, args, data, order, i, keyConflicts)
       end
       args["addOption"] = {
         type = "execute",
