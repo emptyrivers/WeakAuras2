@@ -2639,7 +2639,7 @@ function WeakAuras.Modernize(data)
     ModernizeAnimations(data.animation and data.animation.start);
     ModernizeAnimations(data.animation and data.animation.main);
     ModernizeAnimations(data.animation and data.animation.finish);
-  end -- ENd of V1 => V2
+  end -- End of V1 => V2
 
   -- Version 3 was introduced April 2018 in Legion
   if (data.internalVersion < 3) then
