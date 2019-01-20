@@ -66,6 +66,7 @@ local optionClasses = {
   description = "noninteractive",
   space = "noninteractive",
   header = "noninteractive",
+  group = "group",
 }
 
 local function atLeastOneSet(data, references, key)
@@ -669,7 +670,8 @@ local function setSelectDefault(data, option, key)
   end
 end
 
-local typeControlAdders = {
+local typeControlAdders, addAuthorModeOption
+typeControlAdders = {
   toggle = function(option, args, data, order, prefix, i)
     args[prefix .. i .. "default"] = {
       type = "select",
@@ -1263,6 +1265,70 @@ local typeControlAdders = {
     order = order + 1
     return order
   end,
+  group = function(option, args, data, order, prefix, i)
+    args[prefix .. i .. "width"] = nil
+    args[prefix .. i .. "groupType"] = {
+      type = "select",
+      name = name(data, option, "groupType", L["Group Type"]),
+      order = order,
+      width = WeakAuras.doubleWidth,
+      values = WeakAuras.group_option_types,
+      get = get(option, "groupType"),
+      set = function(_, value)
+        if option[references] then
+        else
+          if value == "simple" then
+            option.values = nil
+          end
+          option.groupType = value
+          WeakAuras.Add(data)
+          WeakAuras.ReloadTriggerOptions(data)
+        end
+      end,
+    }
+    order = order + 1
+    args[prefix .. i .. "groupStart"] = {
+      type = "header",
+      name = L["Start of %s"]:format(option.name),
+      order = order
+    }
+    order = order + 1
+    for subIndex, subOption in ipairs(option.subOptions) do
+      local addControlsForType = typeControlAdders[subOption.type]
+      if addControlsForType then
+        order = addAuthorModeOption(option.subOptions, args, data, order, prefix .. i .. "option", subIndex)
+      end
+    end
+    args[prefix .. i .. "addSubOption"] = {
+      type = "execute",
+      name = L["Add Sub Option"],
+      order = order,
+      width = WeakAuras.normalWidth,
+      func = function()
+        if option[references] then
+        else
+          local index =  #option.subOptions + 1
+          option.subOptions[index] = {
+            type = "toggle",
+            key  = prefix .. i .. "subOption" .. index,
+            name = L["Sub Option %i"]:format(index),
+            default = false,
+            width = 1,
+          }
+          WeakAuras.Add(data)
+          WeakAuras.ReloadTriggerOptions(data)
+        end
+      end
+    }
+    order = order + 1
+    args[prefix .. i .. "groupEnd"] = {
+      type = "header",
+      name = L["End of %s"]:format(option.name),
+      order = order
+    }
+    order = order + 1
+    return order
+  end,
 }
 
 local function up(data, option, index)
@@ -1369,7 +1435,7 @@ local function duplicate(data, option, index)
   end
 end
 
-local function addAuthorModeOption(authorOptions, args, data, order, prefix, i, keyConflicts)
+function addAuthorModeOption(authorOptions, args, data, order, prefix, i, keyConflicts)
   -- add header controls
   local option = authorOptions[i]
 

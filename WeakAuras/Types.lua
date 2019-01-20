@@ -1811,6 +1811,7 @@ WeakAuras.author_option_types = {
   space = L["Space"],
   multiselect = L["Toggle List"],
   header = L["Separator"],
+  group = L["Option Group"],
 }
 
 WeakAuras.author_option_fields = {
@@ -1866,6 +1867,14 @@ WeakAuras.author_option_fields = {
     useName = false,
     text = "",
   },
+  group = {
+    groupType = "simple",
+    subOptions = {},
+  }
+}
+
+WeakAuras.group_option_types = {
+  simple = L["Simple"],
 }
 
 WeakAuras.difficulty_info = {
