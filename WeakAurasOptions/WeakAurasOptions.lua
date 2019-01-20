@@ -4670,74 +4670,139 @@ function WeakAuras.NewAura(sourceData, regionType, targetId)
 end
 
 local collapsedOptions = {}
+local collapsed = {} -- magic value
+WeakAuras.collapsedOptions = collapsedOptions
 function WeakAuras.ResetCollapsed(id)
   if id then
     collapsedOptions[id] = nil
   end
 end
 
-function WeakAuras.IsCollapsed(id, namespace, key, default)
+function WeakAuras.IsCollapsed(id, namespace, path, default)
   local tmp = collapsedOptions[id]
   if tmp == nil then return default end
 
   tmp = tmp[namespace]
   if tmp == nil then return default end
 
-  tmp = tmp[key]
-  return tmp == nil and default or tmp
+  if type(path) ~= "table" then
+    tmp = tmp[path]
+  else
+    for _, key in ipairs(path) do
+      tmp = tmp[key]
+      if tmp == nil or tmp[collapsed] then
+        break
+      end
+    end
+  end
+  if tmp == nil or tmp[collapsed] == nil then
+    return default
+  else
+    return tmp[collapsed]
+  end
 end
 
-function WeakAuras.SetCollapsed(id, namespace, key, v)
+function WeakAuras.SetCollapsed(id, namespace, path, v)
   collapsedOptions[id] = collapsedOptions[id] or {}
   collapsedOptions[id][namespace] = collapsedOptions[id][namespace] or {}
-  collapsedOptions[id][namespace][key] = v
+  if type(path) ~= "table" then
+    collapsedOptions[id][namespace][path] = collapsedOptions[id][namespace][path] or {}
+    collapsedOptions[id][namespace][path][collapsed] = v
+  else
+    local tmp = collapsedOptions[id][namespace] or {}
+    for _, key in ipairs(path) do
+      tmp[key] = tmp[key] or {}
+      tmp = tmp[key]
+    end
+    tmp[collapsed] = v
+  end
 end
 
-function WeakAuras.MoveCollapseDataUp(id, namespace, key)
+function WeakAuras.MoveCollapseDataUp(id, namespace, path)
   collapsedOptions[id] = collapsedOptions[id] or {}
   collapsedOptions[id][namespace] = collapsedOptions[id][namespace] or {}
-  collapsedOptions[id][namespace][key], collapsedOptions[id][namespace][key - 1] = collapsedOptions[id][namespace][key - 1], collapsedOptions[id][namespace][key]
+  if type(path) ~= "table" then
+    collapsedOptions[id][namespace][path], collapsedOptions[id][namespace][path - 1] = collapsedOptions[id][namespace][path - 1], collapsedOptions[id][namespace][path]
+  else
+    local tmp = collapsedOptions[id][namespace]
+    local lastKey = tremove(path)
+    for _, key in ipairs(path) do
+      tmp[key] = tmp[key] or {}
+      tmp = tmp[key]
+    end
+    tmp[lastKey], tmp[lastKey - 1] = tmp[lastKey - 1], tmp[lastKey]
+  end
 end
 
-function WeakAuras.MoveCollapseDataDown(id, namespace, key)
+function WeakAuras.MoveCollapseDataDown(id, namespace, path)
   collapsedOptions[id] = collapsedOptions[id] or {}
   collapsedOptions[id][namespace] = collapsedOptions[id][namespace] or {}
-  collapsedOptions[id][namespace][key], collapsedOptions[id][namespace][key + 1] = collapsedOptions[id][namespace][key + 1], collapsedOptions[id][namespace][key]
+  if type(path) ~= "table" then
+    collapsedOptions[id][namespace][path], collapsedOptions[id][namespace][path + 1] = collapsedOptions[id][namespace][path + 1], collapsedOptions[id][namespace][path]
+  else
+    local tmp = collapsedOptions[id][namespace]
+    local lastKey = tremove(path)
+    for _, key in ipairs(path) do
+      tmp[key] = tmp[key] or {}
+      tmp = tmp[key]
+    end
+    tmp[lastKey], tmp[lastKey + 1] = tmp[lastKey + 1], tmp[lastKey]
+  end
 end
 
-function WeakAuras.RemoveCollapsed(id, namespace, key)
+function WeakAuras.RemoveCollapsed(id, namespace, path)
   local data = collapsedOptions[id] and collapsedOptions[id][namespace]
   if not data then
     return
   end
-
-  local maxKey = 0
-  for k in pairs(data) do
-    maxKey = max(maxKey, k)
+  local index
+  local maxIndex = 0
+  if type(path) ~= "table" then
+    index = path
+  else
+    index = tremove(path)
+    for _, key in ipairs(path) do
+      data = data[key]
+      if not data then
+        return
+      end
+    end
   end
-
-  while key <= maxKey do
-    data[key] = data[key + 1]
-    key = key + 1
+  for k in pairs(data) do
+    maxIndex = max(maxIndex, k)
+  end
+  while index <= maxIndex do
+    data[index] = data[index + 1]
+    index = index + 1
   end
 end
 
-function WeakAuras.InsertCollapsed(id, namespace, key, value)
+function WeakAuras.InsertCollapsed(id, namespace, path, value)
   local data = collapsedOptions[id] and collapsedOptions[id][namespace]
   if not data then
     return
   end
-
-  local index = key
+  local index
+  local minIndex = math.huge
+  if type(path) ~= "table" then
+    index = path
+  else
+    index = tremove(path)
+    for _, key in ipairs(path) do
+      data = data[key]
+      if not data then
+        return
+      end
+    end
+  end
   for k in pairs(data) do
-    index = max(index, k)
+    minIndex = min(minIndex, k)
   end
-
-  while index > key do
-    data[index + 1] = data[index]
-    index = index - 1
+  while index > minIndex do
+    data[index] = data[index + 1]
+    index = index + 1
   end
-  data[key] = value
+  data[index] = value
 end
 
 function WeakAuras.RenameCollapsedData(oldid, newid)
