@@ -2773,7 +2773,9 @@ function WeakAuras.Modernize(data)
     end
   end
 
-  -- Version 11 was introduced in January 2018
+  -- Version 10 is skipped, due to a bad migration script (see https://github.com/WeakAuras/WeakAuras2/pull/1091)
+
+  -- Version 11 was introduced in January 2019
   if data.internalVersion < 11 then
     if data.url and data.url ~= "" then
       local slug, version = data.url:match("wago.io/([^/]+)/([0-9]+)")
@@ -2786,7 +2788,7 @@ function WeakAuras.Modernize(data)
     end
   end
 
-  -- Version 12 was introduced Februar 2019 in BfA
+  -- Version 12 was introduced February 2019 in BfA
   if (data.internalVersion < 12) then
     if data.cooldownTextEnabled ~= nil then
       data.cooldownTextDisabled = not data.cooldownTextEnabled
@@ -2941,6 +2943,27 @@ function WeakAuras.Modernize(data)
     end
     if data.load.use_realm == false then
       data.load.use_realm = nil
+    end
+  end
+
+  -- Version 15 was introduced in April 2019
+  -- This adds a path to everything in authorOptions
+  -- so that we can locate it.
+  -- The other option is that we can build it locally each time
+  -- as transient data
+  if data.internalVersion < 15 then
+    local function recursePath(option, basepath)
+      option.path = CopyTable(basepath)
+      if option.subOptions then
+        basepath[#basepath + 1] = 0
+        for index, subOption in ipairs(option.subOptions) do
+          basepath[#basepath] = index
+          recursePath(subOption, basepath)
+        end
+      end
+    end
+    for index, option in ipairs(data.authorOptions) do
+      recursePath(option, {index})
     end
   end
 
