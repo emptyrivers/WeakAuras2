@@ -1845,7 +1845,7 @@ local function addUserModeOption(options, config, args, data, order, i)
   return order
 end
 
-local function mergeOptions(childIndex, merged, toMerge)
+local function mergeOptions(childData, merged, toMerge)
   local nextInsert = 1
   for i = 1, #toMerge do
     -- find the best place to start inserting the next option to merge
@@ -1866,15 +1866,18 @@ local function mergeOptions(childIndex, merged, toMerge)
       local mergedOption = merged[nextInsert]
       -- nil out all fields which aren't the same
       for k, v in pairs(nextToMerge) do
-        if neq(mergedOption[k], v) then
+        if k == "subOptions" then
+
+        elseif neq(mergedOption[k], v) then
           mergedOption[k] = nil
         end
       end
-      mergedOption[references][childIndex] = i
+      mergedOption[references][childData] = i
     else
       -- can't merge, should insert instead
       local newOption = CopyTable(nextToMerge)
-      newOption[references] = {[childIndex] = i}
+      newOption.path = nil
+      newOption[references] = {[childData] = nextToMerge}
       tinsert(merged, nextInsert, newOption)
     end
     -- nexver merge 2 options from the same child
@@ -1957,7 +1960,7 @@ function WeakAuras.GetAuthorOptions(data, args, startorder)
       local childOptions = childData and childData.authorOptions
       allData[i] = childData
       if childOptions then
-        mergeOptions(i, mergedOptions, childOptions)
+        mergeOptions(childData, mergedOptions, childOptions)
         keyConflicts[i] = findConflictingKeys(childOptions)
       end
     end
