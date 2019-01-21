@@ -1880,7 +1880,7 @@ local function mergeOptions(childData, merged, toMerge)
       newOption[references] = {[childData] = nextToMerge}
       tinsert(merged, nextInsert, newOption)
     end
-    -- nexver merge 2 options from the same child
+    -- never merge 2 options from the same child
     nextInsert = nextInsert + 1
   end
 end
