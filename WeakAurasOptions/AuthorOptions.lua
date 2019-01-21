@@ -1872,7 +1872,7 @@ local function mergeOptions(childData, merged, toMerge)
           mergedOption[k] = nil
         end
       end
-      mergedOption[references][childData] = i
+      mergedOption[references][childData] = nextToMerge
     else
       -- can't merge, should insert instead
       local newOption = CopyTable(nextToMerge)
