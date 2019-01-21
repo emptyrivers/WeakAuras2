@@ -4760,9 +4760,9 @@ function WeakAuras.RemoveCollapsed(id, namespace, path)
   if type(path) ~= "table" then
     index = path
   else
-    index = tremove(path)
-    for _, key in ipairs(path) do
-      data = data[key]
+    index = path[#path]
+    for i = 1, #path - 1 do
+      data = data[path[i]]
       if not data then
         return
       end
@@ -4787,9 +4787,9 @@ function WeakAuras.InsertCollapsed(id, namespace, path, value)
   if type(path) ~= "table" then
     index = path
   else
-    index = tremove(path)
-    for _, key in ipairs(path) do
-      data = data[key]
+    index = path[#path]
+    for i = 1, #path - 1 do
+      data = data[path[i]]
       if not data then
         return
       end
