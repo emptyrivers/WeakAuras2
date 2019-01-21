@@ -1293,7 +1293,7 @@ typeControlAdders = {
       type = "select",
       name = name(data, option, "groupType", L["Group Type"]),
       order = order,
-      width = WeakAuras.doubleWidth,
+      width = WeakAuras.normalWidth,
       values = WeakAuras.group_option_types,
       get = get(option, "groupType"),
       set = function(_, value)
@@ -1309,6 +1309,27 @@ typeControlAdders = {
       end
     }
     order = order + 1
+    args[prefix .. i .. "name"] = {
+      type = "input",
+      name = name(data, option, "name", L["Title"]),
+      order = order,
+      width = WeakAuras.normalWidth,
+      get = getStr(option, "name"),
+      set = setStr(data, option, "name"),
+    }
+    order = order + 1
+    if option.groupType == "simple" then
+      args[prefix .. i .. "collapseDefault"] = {
+        type = "toggle",
+        name = name(data, option, "collapse", L["Start Collapsed"]),
+        desc = desc(data, option, "collapse", L["If checked, then this option group will be initially rendered in a collapsed state."]),
+        order = order,
+        width = WeakAuras.doubleWidth,
+        get = get(option, "collapse"),
+        set = set(data, option, "collapse"),
+      }
+      order = order + 1
+    end
     args[prefix .. i .. "groupStart"] = {
       type = "header",
       name = L["Start of %s"]:format(option.name),
@@ -1785,7 +1806,7 @@ function addAuthorModeOption(options, args, data, order, prefix, i, keyConflicts
   return order
 end
 
-local function addUserModeOption(options, config, args, data, order, i)
+local function addUserModeOption(options, config, args, data, order, prefix, i)
   local option = options[i]
   local optionType = option.type
   local optionClass = optionClasses[optionType]
@@ -1808,8 +1829,61 @@ local function addUserModeOption(options, config, args, data, order, i)
       name = "",
       width = (option.width or 1) * WeakAuras.normalWidth
     }
+  elseif optionClass == "group" then
+    if option.groupType == "simple" then
+      local defaultCollapsed = true
+      if option.collapse ~= nil then
+        defaultCollapsed = option.collapse
+      end
+      local collapsed = false
+      if option[references] then
+        for childData, childOption in pairs(option[references]) do
+          if WeakAuras.IsCollapsed(childData.id, "config", prefix .. i, defaultCollapsed) then
+            collapsed = true
+            break
+          end
+        end
+      else
+        collapsed = WeakAuras.IsCollapsed(data.id, "config", prefix .. i, defaultCollapsed)
+      end
+      args[prefix .. i .. "collapse"] = {
+        type = "execute",
+        name = "",
+        order = order,
+        width = 0.15,
+        func = function()
+          if option[references] then
+            for childData, childOption in pairs(option[references]) do
+              WeakAuras.SetCollapsed(childData.id, "config", prefix .. i, not collapsed)
+            end
+            WeakAuras.ReloadTriggerOptions(data[0])
+          else
+            WeakAuras.SetCollapsed(data.id, "config", prefix .. i, not collapsed)
+            WeakAuras.ReloadTriggerOptions(data)
+          end
+        end,
+        image = collapsed and "Interface\\AddOns\\WeakAuras\\Media\\Textures\\expand" or
+          "Interface\\AddOns\\WeakAuras\\Media\\Textures\\collapse",
+        imageWidth = 18,
+        imageHeight = 18
+      }
+      order = order + 1
+      args[prefix .. i .. "title"] = {
+        type = "description",
+        fontSize = "large",
+        name = option.name,
+        order = order,
+        width = WeakAuras.doubleWidth - 0.15,
+      }
+      order = order + 1
+      if not collapsed then
+        for j = 1, #option.subOptions do
+          order = addUserModeOption(option.subOptions, config, args, data, order, prefix .. i .. "subOption", j)
+        end
+      end
+    end
   end
-  args["userOption" .. i] = userOption
+  args[prefix .. i] = userOption
   order = order + 1
 
   -- convert from weakauras option type to ace option type
@@ -2077,7 +2151,7 @@ function WeakAuras.GetAuthorOptions(data, args, startorder)
     else
       local order = startorder
       for i = 1, #mergedOptions do
-        order = addUserModeOption(mergedOptions, nil, args, allData, order, i)
+        order = addUserModeOption(mergedOptions, mergedConfig, args, allData, order, "userOption", i)
       end
       args["userConfigFooter"] = {
         type = "header",
@@ -2126,7 +2200,7 @@ function WeakAuras.GetAuthorOptions(data, args, startorder)
       local order = startorder
       local config = data.config
       for i = 1, #authorOptions do
-        order = addUserModeOption(authorOptions, config, args, data, order, i)
+        order = addUserModeOption(authorOptions, config, args, data, order, "userOption", i)
       end
       args["resetToDefault"] = {
         type = "execute",
