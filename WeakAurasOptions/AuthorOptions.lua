@@ -1950,6 +1950,17 @@ local function addUserModeOption(options, config, args, data, order, prefix, i)
   return order
 end
 
+local function initReferences(mergedOption, data, unmerged)
+  mergedOption.path = nil
+  mergedOption[references] = {[data] = unmerged}
+  if unmerged.subOptions then
+    for i, subOption in ipairs(unmerged.subOptions) do
+      local submergedOption = mergedOption.subOptions[i] -- ha, submerged
+      initReferences(submergedOption, data, subOption)
+    end
+  end
+end
+
 local function mergeOptions(childData, merged, toMerge)
   local nextInsert = 1
   for i = 1, #toMerge do
@@ -1960,10 +1971,11 @@ local function mergeOptions(childData, merged, toMerge)
       if not merged[j] then
         break
       end -- no more options to check, so must insert
-      if
-        nextToMerge.type == merged[j].type and nextToMerge.key == merged[j].key and nextToMerge.name == merged[j].name and
-          nextToMerge.groupType == merged[j].groupType
-       then
+      if nextToMerge.type == merged[j].type
+        and nextToMerge.key == merged[j].key
+        and nextToMerge.name == merged[j].name
+        and nextToMerge.groupType == merged[j].groupType
+      then
         shouldMerge = true
         nextInsert = j
         break
@@ -1985,8 +1997,7 @@ local function mergeOptions(childData, merged, toMerge)
     else
       -- can't merge, should insert instead
       local newOption = CopyTable(nextToMerge)
-      newOption.path = nil
-      newOption[references] = {[childData] = nextToMerge}
+      initReferences(newOption, childData, nextToMerge)
       tinsert(merged, nextInsert, newOption)
     end
     -- never merge 2 options from the same child
