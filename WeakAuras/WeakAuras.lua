@@ -3291,7 +3291,6 @@ end
 
 local function pAdd(data)
   local id = data.id;
-  if id == "optionstest" then ViragDevTool_AddData(data, "data") end
   if not(id) then
     error("Improper arguments to WeakAuras.Add - id not defined");
     return;
