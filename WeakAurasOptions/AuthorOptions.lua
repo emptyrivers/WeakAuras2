@@ -1297,22 +1297,13 @@ typeControlAdders = {
       end
     }
     order = order + 1
-    args[prefix .. i .. "name"] = {
-      type = "input",
-      name = name(data, option, "name", L["Title"]),
-      order = order,
-      width = WeakAuras.normalWidth,
-      get = getStr(option, "name"),
-      set = setStr(data, option, "name"),
-    }
-    order = order + 1
     if option.groupType == "simple" then
       args[prefix .. i .. "collapseDefault"] = {
         type = "toggle",
         name = name(data, option, "collapse", L["Start Collapsed"]),
         desc = desc(data, option, "collapse", L["If checked, then this option group will be initially rendered in a collapsed state."]),
         order = order,
-        width = WeakAuras.doubleWidth,
+        width = WeakAuras.normalWidth,
         get = get(option, "collapse"),
         set = set(data, option, "collapse"),
       }
@@ -1507,9 +1498,6 @@ local function duplicate(data, options, index)
       WeakAuras.InsertCollapsed(data.id, "author", options[index].path)
       tinsert(options, index + 1, CopyTable(option))
       for i = index + 1, #options do
-        print('adjusting path of options.'..i)
-        print(options[i].path)
-        print(#option.path)
         adjustPath(options[i], #option.path, 1)
       end
       WeakAuras.Add(data)
@@ -1636,6 +1624,8 @@ function addAuthorModeOption(options, args, data, order, prefix, i, keyConflicts
   order = order + 1
 
   if collapsed then
+    -- collapsed, don't render the rest
+    -- TODO: consider having the rest of the options built, and using a hiddenfunc instead
     return order
   end
 
@@ -1719,7 +1709,7 @@ function addAuthorModeOption(options, args, data, order, prefix, i, keyConflicts
 
   local optionClass = optionClasses[option.type]
 
-  if optionClass == "simple" then
+  if optionClass ~= "noninteractive" then
     args[prefix .. i .. "name"] = {
       type = "input",
       width = WeakAuras.normalWidth,
@@ -1741,6 +1731,9 @@ function addAuthorModeOption(options, args, data, order, prefix, i, keyConflicts
       set = setKey(data, option, option.key, keyConflicts)
     }
     order = order + 1
+  end
+
+  if optionClass == "simple" then
     args[prefix .. i .. "tooltipSpace"] = {
       type = "description",
       width = WeakAuras.doubleWidth,
@@ -1866,7 +1859,7 @@ local function addUserModeOption(options, config, args, data, order, prefix, i)
       order = order + 1
       if not collapsed then
         for j = 1, #option.subOptions do
-          order = addUserModeOption(option.subOptions, config, args, data, order, prefix .. i .. "subOption", j)
+          order = addUserModeOption(option.subOptions, config[option.key], args, data, order, prefix .. i .. "subOption", j)
         end
       end
     end

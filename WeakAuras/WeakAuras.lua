@@ -3085,12 +3085,20 @@ local function validateUserConfig(options, config)
           config[option.key] = CopyTable(option.default)
         end
       end
+    elseif optionClass == "group" then
+      authorOptionKeys[option.key] = "group"
+      local subOptions = option.subOptions
+      if type(config[option.key]) ~= "table" then
+        config[option.key] = {}
+      end
+      local subConfig = config[option.key]
+      validateUserConfig(subOptions, subConfig)
     end
   end
   for key, value in pairs(config) do
     if not authorOptionKeys[key] then
       config[key] = nil
-    else
+    elseif authorOptionKeys[key] ~= "group" then
       local option = options[authorOptionKeys[key]]
       if type(value) ~= type(option.default) then
         -- if type mismatch then we know that it can't be right
@@ -3283,7 +3291,7 @@ end
 
 local function pAdd(data)
   local id = data.id;
-
+  if id == "optionstest" then ViragDevTool_AddData(data, "data") end
   if not(id) then
     error("Improper arguments to WeakAuras.Add - id not defined");
     return;
