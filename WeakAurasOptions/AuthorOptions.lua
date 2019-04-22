@@ -55,19 +55,7 @@ local tinsert, tremove, tconcat = table.insert, table.remove, table.concat
 local conflictBlue = "|cFF4080FF"
 local references, conflict = {}, {} -- magic values
 -- classifications of options. Currently, we have simple and noninteractive
-local optionClasses = {
-  toggle = "simple",
-  input = "simple",
-  number = "simple",
-  range = "simple",
-  color = "simple",
-  select = "simple",
-  multiselect = "simple",
-  description = "noninteractive",
-  space = "noninteractive",
-  header = "noninteractive",
-  group = "group"
-}
+local optionClasses = WeakAuras.author_option_classes
 
 local function atLeastOneSet(references, key)
   for _, childOption in pairs(references) do

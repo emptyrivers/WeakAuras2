@@ -1800,6 +1800,20 @@ WeakAuras.data_stub = {
   authorOptions = {},
 }
 
+WeakAuras.author_option_classes = {
+  toggle = "simple",
+  input = "simple",
+  number = "simple",
+  range = "simple",
+  color = "simple",
+  select = "simple",
+  multiselect = "simple",
+  description = "noninteractive",
+  space = "noninteractive",
+  header = "noninteractive",
+  group = "group"
+}
+
 WeakAuras.author_option_types = {
   toggle = L["Toggle"],
   input = L["String"],
