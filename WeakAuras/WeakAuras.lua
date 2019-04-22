@@ -3072,49 +3072,50 @@ function WeakAuras.AddMany(table)
   end
 end
 
-local function validateUserConfig(data)
+local function validateUserConfig(options, config)
   local authorOptionKeys = {}
-  for index, option in ipairs(data.authorOptions) do
-    if option.key then
+  for index, option in ipairs(options) do
+    local optionClass = WeakAuras.author_option_classes[option.type]
+    if optionClass == "simple" then
       authorOptionKeys[option.key] = index
-      if data.config[option.key] == nil then
+      if config[option.key] == nil then
         if type(option.default) ~= "table" then
-          data.config[option.key] = option.default
+          config[option.key] = option.default
         else
-          data.config[option.key] = CopyTable(option.default)
+          config[option.key] = CopyTable(option.default)
         end
       end
     end
   end
-  for key, value in pairs(data.config) do
+  for key, value in pairs(config) do
     if not authorOptionKeys[key] then
-      data.config[key] = nil
+      config[key] = nil
     else
-      local option = data.authorOptions[authorOptionKeys[key]]
+      local option = options[authorOptionKeys[key]]
       if type(value) ~= type(option.default) then
         -- if type mismatch then we know that it can't be right
         if type(option.default) ~= "table" then
-          data.config[key] = option.default
+          config[key] = option.default
         else
-          data.config[key] = CopyTable(option.default)
+          config[key] = CopyTable(option.default)
         end
       elseif option.type == "input" and option.useLength then
-        data.config[key] = data.config[key]:sub(1, option.length)
+        config[key] = config[key]:sub(1, option.length)
       elseif option.type == "number" or option.type == "range" then
         if (option.max and option.max < value) or (option.min and option.min > value) then
-          data.config[key] = option.default
+          config[key] = option.default
         else
           if option.type == "number" and option.step then
             local min = option.min or 0
-            data.config[key] = option.step * Round((value - min)/option.step) + min
+            config[key] = option.step * Round((value - min)/option.step) + min
           end
         end
       elseif option.type == "select" then
         if value < 1 or value > #option.values then
-          data.config[key] = option.default
+          config[key] = option.default
         end
       elseif option.type == "multiselect" then
-        local multiselect = data.config[key]
+        local multiselect = config[key]
         for i, v in ipairs(multiselect) do
           if option.default[i] ~= nil then
             if type(v) ~= "boolean" then
@@ -3126,9 +3127,9 @@ local function validateUserConfig(data)
         end
       elseif option.type == "color" then
         for i = 1, 4 do
-          local c = data.config[key][i]
+          local c = config[key][i]
           if type(c) ~= "number" or c < 0 or c > 1 then
-            data.config[key] = option.default
+            config[key] = option.default
             break
           end
         end
@@ -3273,7 +3274,7 @@ function WeakAuras.PreAdd(data)
   end
   WeakAuras.Modernize(data);
   WeakAuras.validate(data, WeakAuras.data_stub);
-  validateUserConfig(data)
+  validateUserConfig(data.authorOptions, data.config)
   removeSpellNames(data)
   data.init_started = nil
   data.init_completed = nil
