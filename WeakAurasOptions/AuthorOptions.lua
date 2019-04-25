@@ -1495,18 +1495,13 @@ function addAuthorModeOption(options, args, data, order, prefix, i, keyConflicts
     control = "WeakAurasExpand"
   }
 
+  local optionClass = optionClasses[option.type]
+  local optionName = option.class == "noninteractive" and WeakAuras.author_option_types[option.type]
+                     or option.name or L["Option #%i"]:format(i)
   args[prefix .. i .. "header"] = {
     type = "description",
     width = WeakAuras.doubleWidth - 0.75,
-    name = nameHead(
-      data,
-      option,
-      option.name or -- TODO: find a better way than a giant chain of or.
-        (option.type == "space" and L["Space"]) or
-        (option.type == "description" and L["Description"]) or
-        (option.type == "header" and L["Separator"]) or
-        L["Option #%i"]:format(i)
-    ),
+    name = nameHead(data, option, optionName),
     order = order(),
     fontSize = "large"
   }
@@ -1644,8 +1639,6 @@ function addAuthorModeOption(options, args, data, order, prefix, i, keyConflicts
       end
     end
   }
-
-  local optionClass = optionClasses[option.type]
 
   if optionClass ~= "noninteractive" then
     args[prefix .. i .. "name"] = {
