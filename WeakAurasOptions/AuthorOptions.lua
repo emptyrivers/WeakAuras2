@@ -1664,6 +1664,15 @@ local function initReferences(mergedOption, data, options, index, config, path)
   end
 end
 
+-- all of these fields must be identical for an option to be merged
+-- sometimes this just means that they are both nil, e.g. descriptions have no key
+local significantFieldsForMerge = {
+  type = true,
+  name = true,
+  key = true,
+  groupType = true,
+}
+
 local function mergeOptions(mergedOptions, data, options, config, prepath)
   local nextInsert = 1
   for i = 1, #options do
@@ -1674,14 +1683,18 @@ local function mergeOptions(mergedOptions, data, options, config, prepath)
     local nextToMerge = options[i]
     local shouldMerge = false
     for j = nextInsert, #mergedOptions + 1 do
-      if not mergedOptions[j] then
+      local mergedOption = mergedOptions[j]
+      if not mergedOption then
         break
       end -- no more options to check, so must insert
-      if nextToMerge.type == mergedOptions[j].type
-        and nextToMerge.key == mergedOptions[j].key
-        and nextToMerge.name == mergedOptions[j].name
-        and nextToMerge.groupType == mergedOptions[j].groupType
-      then
+      local validMerge = true
+      for field in pairs(significantFieldsForMerge) do
+        if nextToMerge[field] ~= mergedOption[field] then
+          validMerge = false
+          break
+        end
+      end
+      if validMerge then
         shouldMerge = true
         nextInsert = j
         break
