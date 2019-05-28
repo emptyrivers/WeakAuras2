@@ -805,7 +805,7 @@ typeControlAdders = {
     widthOption.disabled = function()
       return not option.variableWidth
     end
-    widthOption.order = order
+    widthOption.order = order()
 
     args[prefix .. i .. "useHeight"] = {
       type = "toggle",
