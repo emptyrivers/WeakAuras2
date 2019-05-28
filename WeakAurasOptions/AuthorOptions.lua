@@ -16,10 +16,20 @@
     width (required) -> number between 0.1 and 2 (softMin of 0.5). Determines the width of the option.
     useDesc (optional) -> bool. If false, then the tooltip will not be used.
     desc (optional) -> string to be displayed in the option tooltip
-    path (required) -> table. Represents the location of the option, used for determining Collapsed status, and moving the option around
   When options are merged together (i.e. when the user multiselects and then opens the custom options tab), there is one additonal field:
     references -> childID <=> optionID map, used to dereference to the proper option table in setters
   Supported option types, and additional fields that each type supports/requires:
+    group -> represents a group of options.
+      useCollapse (optional) -> if true, then group will have a collapsible header in user mode.
+      collapse (optional) -> whether or not the collapsible header begins collapsed when the user begins a session.
+      subOptions (required) -> array of options
+      groupType (required) -> type of group:
+        simple -> group is for organizational purposes only.
+                  config value is a sub config
+        array -> group represents an array of entries from the user, with similar information between them:
+                 config value is arranged as an array of sub configs, one for each entry in the array.
+          limitType (required) -> Specifies if user can add or remove entries from the array freely
+          size (optional) -> required if the limitType is not "none".
     description -> dummy option which can be used to display some text. Not interactive, and so key/default/name are not set or required.
       text (required) -> text displayed on the panel
       fontSize (optional) -> fontSize. Default is medium.
