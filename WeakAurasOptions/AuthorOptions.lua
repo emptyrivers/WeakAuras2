@@ -1784,7 +1784,7 @@ function WeakAuras.GetAuthorOptions(data, args, startorder)
         end
         WeakAuras.ReloadTriggerOptions(data)
       end,
-      hidden = function()
+      disabled = function()
         return #options == 0 or allChoicesAreDefault(options)
       end
     }
