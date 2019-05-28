@@ -1714,9 +1714,8 @@ local function addUserModeOption(options, args, data, order, prefix, i)
 
   -- convert from weakauras option type to ace option type
   if optionClass == "simple" then
-    if optionType == "toggle" then
-    elseif optionType == "input" then
-    elseif optionType == "number" then
+    -- toggle and input don't need any extra love
+    if optionType == "number" then
       userOption.type = "input"
       userOption.get = getUserNum(option)
       userOption.set = setUserNum(data, option, true)
