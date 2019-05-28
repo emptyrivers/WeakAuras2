@@ -1883,36 +1883,24 @@ WeakAuras.author_option_fields = {
   },
   group = {
     groupType = "simple",
+    useCollapse = true,
+    collapse = false,
+    limitType = "none",
+    size = 10,
     subOptions = {},
   }
 }
 
+WeakAuras.group_limit_types = {
+  none = L["Unlimited"],
+  max = L["Limited"],
+  fixed = L["Fixed Size"],
+}
+
 WeakAuras.group_option_types = {
   simple = L["Simple"],
-  branch = L["Branch"],
-  table = L["Table"]
-}
-
-WeakAuras.group_option_fields = {
-  simple = {
-    collapse = false,
-  },
-  branch = {
-    branchType = "toggle",
-    branchLengths = {0},
-    defaultBranch = false,
-  },
-  table = {
-    entryNameType = 0, -- auto
-    entryNames = {},
-    useEntryLimit = false,
-    entryLimit = 10,
-  }
-}
-
-WeakAuras.table_group_name_types = {
-  [-1] = L["Static"],
-  [0] = L["Automatic"],
+  array = L["Array"],
+  -- hash = L["Hash"], -- TODO: decide if we actually want this
 }
 
 WeakAuras.difficulty_info = {

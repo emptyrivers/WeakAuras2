@@ -3092,7 +3092,23 @@ local function validateUserConfig(options, config)
         config[option.key] = {}
       end
       local subConfig = config[option.key]
-      validateUserConfig(subOptions, subConfig)
+      if option.groupType == "array" then
+        for k, v in pairs(subConfig) do
+          if type(k) == "number" and type(v) == "table" then
+            validateUserConfig(subOptions, v)
+          else
+            wipe(subConfig) -- an empty table is a valid array
+            break
+          end
+        end
+      else
+        if type(next(subConfig)) ~= "string" then
+          -- either there are no sub options, in which case this is a noop
+          -- or this group was previously an array, in which case we need to wipe
+          wipe(subConfig)
+        end
+        validateUserConfig(subOptions, subConfig)
+      end
     end
   end
   for key, value in pairs(config) do
