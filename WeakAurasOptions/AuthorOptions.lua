@@ -2052,6 +2052,7 @@ function WeakAuras.GetAuthorOptions(data, args, startorder)
         if data.controlledChildren then
           for _, id in pairs(data.controlledChildren) do
             local childData = WeakAuras.GetData(id)
+            WeakAuras.ResetCollapsed(id, "config")
             childData.config = {} -- config validation in Add() will set all the needed keys to their defaults
             WeakAuras.Add(childData)
           end
