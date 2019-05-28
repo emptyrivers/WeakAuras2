@@ -1372,6 +1372,7 @@ function addAuthorModeOption(options, args, data, order, prefix, i)
             while existingKeys[newKey] do
               newKey = newKey .. "copy"
             end
+            childOption.key = newKey
           end
         end
         WeakAuras.Add(childData)
