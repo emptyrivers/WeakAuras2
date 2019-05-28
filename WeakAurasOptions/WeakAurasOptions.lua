@@ -4769,7 +4769,9 @@ function WeakAuras.RemoveCollapsed(id, namespace, path)
     end
   end
   for k in pairs(data) do
-    maxIndex = max(maxIndex, k)
+    if k ~= collapsed then
+      maxIndex = max(maxIndex, k)
+    end
   end
   while index <= maxIndex do
     data[index] = data[index + 1]
@@ -4796,7 +4798,9 @@ function WeakAuras.InsertCollapsed(id, namespace, path, value)
     end
   end
   for k in pairs(data) do
-    minIndex = min(minIndex, k)
+    if k ~= collapsed then
+      minIndex = min(minIndex, k)
+    end
   end
   while index > minIndex do
     data[index] = data[index + 1]
