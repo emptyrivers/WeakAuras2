@@ -1312,11 +1312,7 @@ function addAuthorModeOption(options, args, data, order, prefix, i)
     control = "WeakAurasIcon"
   }
 
-  if collapsed then
-    -- collapsed, don't render the rest
-    -- TODO: consider having the rest of the options built, and using a hiddenfunc instead
-    return
-  end
+  if collapsed then return end
 
   args[prefix .. i .. "type"] = {
     type = "select",
