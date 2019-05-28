@@ -278,12 +278,13 @@ local function getUserNum(option)
   end
 end
 
-local function getValues(option)
+local function getValues(option, key)
   local values = {}
   local firstChild = true
+  key = key or "values"
   for id, optionData in pairs(option.references) do
     local childOption = optionData.options[optionData.index]
-    local childValues = childOption.values
+    local childValues = childOption[key]
     local i = 1
     while i <= #values or i <= #childValues do
       if firstChild then
@@ -1000,7 +1001,28 @@ typeControlAdders = {
       values = WeakAuras.group_option_types,
       get = get(option, "groupType"),
       set = function(_, value)
-        print('hello, world!')
+        local commonFields = WeakAuras.author_option_fields.common
+        local commonGroupFields = WeakAuras.author_option_fields.group
+        local newFields = WeakAuras.group_option_fields[value]
+        for id, optionData in pairs(option.references) do
+          local childOption = optionData.options[optionData.index]
+          local childData = optionData.data
+          childOption.groupType = value
+          for k in pairs(childOption) do
+            if commonFields[k] == nil and commonGroupFields[k] == nil then
+              childOption[k] = nil
+            end
+          end
+          for k, v in pairs(newFields) do
+            if type(v) == "table" then
+              childOption[k] = CopyTable(v)
+            else
+              childOption[k] = v
+            end
+          end
+          WeakAuras.Add(childData)
+        end
+        WeakAuras.ReloadTriggerOptions(data)
       end
     }
     if option.groupType == "simple" then
@@ -1012,6 +1034,69 @@ typeControlAdders = {
         width = WeakAuras.normalWidth,
         get = get(option, "collapse"),
         set = set(data, option, "collapse"),
+      }
+    elseif option.groupType == "branch" then
+    elseif option.groupType == "table" then
+      local values = CopyTable(WeakAuras.table_group_name_types)
+      local firstChild = true
+      for id, optionData in pairs(option.references) do
+        local childOption = optionData.options[optionData.index]
+        local childSubOptions = childOption.subOptions
+        local i = 1
+        while i <= #values or i <= #childSubOptions do
+          if firstChild then
+            values[i] = childSubOptions[i].name
+          elseif values[i] ~= childSubOptions[i].name then
+            values[i] = conflict
+          end
+          i = i + 1
+        end
+        firstChild = false
+      end
+      for i, v in ipairs(values) do
+        if v == conflict then
+          values[i] = conflictBlue .. L["Name of Option %i"]:format(i)
+        end
+      end
+      args[prefix .. i .. "entryNameType"] = {
+        type = "select",
+        name = name(option, "entryNameType", L["Entry Names"]),
+        desc = desc(option, "entryNameType", L["Determines how names in the entry dropdown are generated"]),
+        order = order(),
+        width = WeakAuras.normalWidth,
+        values = values,
+        get = get(option, "entryNameType"),
+        set = function(_, value)
+          for id, optionData in pairs(option.references) do
+            local childOption = optionData.options[optionData.index]
+            local childData = optionData.data
+            childOption.entryNameType = min(value, #childOption.subOptions)
+            WeakAuras.Add(childData)
+          end
+          WeakAuras.ReloadTriggerOptions(data)
+        end,
+      }
+      args[prefix .. i .. "useEntryLimit"] = {
+        type = "toggle",
+        name = name(option, "useEntryLimit", L["Entry Limit"]),
+        desc = desc(option, "useEntryLimit", L["If checked, then the maximum number of entries from the user is limited."]),
+        order = order(),
+        width = WeakAuras.normalWidth,
+        get = get(option, "useEntryLimit"),
+        set = set(option, "useEntryLimit"),
+      }
+      args[prefix .. i .. "entryLimit"] = {
+        type = "range",
+        name = name(option, "entryLimit", L["Entry Limit"]),
+        desc = desc(option, "entryLimit"),
+        order = order(),
+        width = WeakAuras.normalWidth,
+        min = 1, -- it doesn't make sense to limit the user to only 0 entries!
+        softMax = 10,
+        step = 1,
+        get = get(option, "entryLimit"),
+        set = set(option, "entryLimit"),
+        disabled = function() return not option.useEntryLimit end,
       }
     end
     args[prefix .. i .. "groupStart"] = {
@@ -1203,13 +1288,6 @@ function addAuthorModeOption(options, args, data, order, prefix, i)
   local optionClass = optionClasses[option.type]
   local optionName = option.class == "noninteractive" and WeakAuras.author_option_types[option.type]
                      or option.name or L["Option #%i"]:format(i)
-  args[prefix .. i .. "header"] = {
-    type = "description",
-    width = WeakAuras.doubleWidth - 0.75,
-    name = nameHead(data, option, optionName),
-    order = order(),
-    fontSize = "large"
-  }
 
   local upDisable, upFunc = up(data, options, i)
   args[prefix .. i .. "up"] = {
@@ -1307,12 +1385,33 @@ function addAuthorModeOption(options, args, data, order, prefix, i)
           childOption.useDesc = nil
           childOption.default = nil
         else
-          -- don't use the optionID here if switching from a noninteractive type
+          -- don't use the option index here if switching from a noninteractive type
           -- mostly because it would have a very non-intuitive effect
           -- the names and keys would likely not match anymore, and so
           -- the merged display would basically explode into a bunch of separate options
           childOption.name = childOption.name or ("Option %i"):format(i)
-          childOption.key = childOption.key or ("option" .. i)
+          if not childOption.key then
+            local newKey = "option" .. i
+            local existingKeys = {}
+            for index, option in pairs(optionData.options) do
+              if index ~= optionData.index then
+                existingKeys[option.key] = true
+              end
+            end
+            while existingKeys[newKey] do
+              newKey = newKey .. "copy"
+            end
+          end
+          if newClass == "group" then
+            local newFields = WeakAuras.group_option_fields.simple
+            for k, v in pairs(newFields) do
+              if type(v) == "table" then
+                childOption[k] = CopyTable(v)
+              else
+                childOption[k] = v
+              end
+            end
+          end
         end
         WeakAuras.Add(childData)
       end

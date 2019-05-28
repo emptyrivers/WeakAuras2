@@ -1889,6 +1889,30 @@ WeakAuras.author_option_fields = {
 
 WeakAuras.group_option_types = {
   simple = L["Simple"],
+  branch = L["Branch"],
+  table = L["Table"]
+}
+
+WeakAuras.group_option_fields = {
+  simple = {
+    collapse = false,
+  },
+  branch = {
+    branchType = "toggle",
+    branchLengths = {0},
+    defaultBranch = false,
+  },
+  table = {
+    entryNameType = 0, -- auto
+    entryNames = {},
+    useEntryLimit = false,
+    entryLimit = 10,
+  }
+}
+
+WeakAuras.table_group_name_types = {
+  [-1] = L["Static"],
+  [0] = L["Automatic"],
 }
 
 WeakAuras.difficulty_info = {
