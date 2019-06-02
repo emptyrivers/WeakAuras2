@@ -4789,7 +4789,7 @@ function WeakAuras.InsertCollapsed(id, namespace, path, value)
     return
   end
   local insertPoint
-  local minIndex, maxIndex
+  local maxIndex
   if type(path) ~= "table" then
     insertPoint = path
   else
@@ -4803,20 +4803,16 @@ function WeakAuras.InsertCollapsed(id, namespace, path, value)
   end
   for k in pairs(data) do
     if k ~= collapsed and k >= insertPoint then
-      if not minIndex or k < minIndex then
-        minIndex = k
-      end
       if not maxIndex or k > maxIndex then
         maxIndex = k
       end
     end
   end
-  maxIndex = maxIndex or insertPoint
-  minIndex = minIndex or insertPoint
-  for i = maxIndex, minIndex, -1 do
-    data[i + 1] = data[i]
+  if maxIndex then -- may be nil if insertPoint is greater than the max of anything else
+    for i = maxIndex, insertPoint, -1 do
+      data[i + 1] = data[i]
+    end
   end
-  data[minIndex] = nil -- minIndex may not be the same as the actual insert point
   data[insertPoint] = {[collapsed] = value}
 end
 
