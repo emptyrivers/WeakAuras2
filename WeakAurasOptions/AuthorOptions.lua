@@ -1645,11 +1645,7 @@ local function addUserModeOption(options, args, data, order, prefix, i)
                 if #childConfigList ~= 0 then
                   tremove(childConfigList)
                   setPage(id, optionData.path, #childConfigList)
-                  -- the author's init action need a chance to react to this change
-                  -- but the values themselves don't need to be revalidated
-                  -- So we can skip the full Add, but do reset aura_env
-                  -- !!! this will need some testing to ensure that there aren't any surprises!
-                  WeakAuras.ClearAuraEnvironment(childData)
+                  WeakAuras.Add(childData)
                 end
               end
               WeakAuras.ReloadTriggerOptions(data)
@@ -1674,7 +1670,7 @@ local function addUserModeOption(options, args, data, order, prefix, i)
                 local childData = optionData.data
                 if childConfigList[page] then
                   childConfigList[page], childConfigList[page - 1] = childConfigList[page - 1], childConfigList[page]
-                  WeakAuras.ClearAuraEnvironment(childData.id)
+                  WeakAuras.Add(childData)
                 end
               end
               WeakAuras.ReloadTriggerOptions(data)
@@ -1699,7 +1695,7 @@ local function addUserModeOption(options, args, data, order, prefix, i)
                 local childData = optionData.data
                 if childConfigList[page + 1] then
                   childConfigList[page], childConfigList[page + 1] = childConfigList[page + 1], childConfigList[page]
-                  WeakAuras.ClearAuraEnvironment(childData.id)
+                  WeakAuras.Add(childData)
                 end
               end
               WeakAuras.ReloadTriggerOptions(data)
