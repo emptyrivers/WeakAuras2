@@ -4788,12 +4788,12 @@ function WeakAuras.InsertCollapsed(id, namespace, path, value)
   if not data then
     return
   end
-  local index
-  local minIndex = math.huge
+  local insertPoint
+  local minIndex, maxIndex
   if type(path) ~= "table" then
-    index = path
+    insertPoint = path
   else
-    index = path[#path]
+    insertPoint = path[#path]
     for i = 1, #path - 1 do
       data = data[path[i]]
       if not data then
@@ -4802,15 +4802,22 @@ function WeakAuras.InsertCollapsed(id, namespace, path, value)
     end
   end
   for k in pairs(data) do
-    if k ~= collapsed then
-      minIndex = min(minIndex, k)
+    if k ~= collapsed and k >= insertPoint then
+      if not minIndex or k < minIndex then
+        minIndex = k
+      end
+      if not maxIndex or k > maxIndex then
+        maxIndex = k
+      end
     end
   end
-  while index > minIndex do
-    data[index] = data[index + 1]
-    index = index + 1
+  maxIndex = maxIndex or insertPoint
+  minIndex = minIndex or insertPoint
+  for i = maxIndex, minIndex, -1 do
+    data[i + 1] = data[i]
   end
-  data[index] = value
+  data[minIndex] = nil -- minIndex may not be the same as the actual insert point
+  data[insertPoint] = {[collapsed] = value}
 end
 
 function WeakAuras.RenameCollapsedData(oldid, newid)

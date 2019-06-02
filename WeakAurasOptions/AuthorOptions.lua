@@ -1193,7 +1193,9 @@ local function duplicate(data, options, index)
       local optionID = optionData.index
       local childOptions = optionData.options
       local childData = optionData.data
-      WeakAuras.InsertCollapsed(id, "author", optionData.path)
+      local path = optionData.path
+      path[#path] = path[#path] + 1 -- this data is being regenerated very soon
+      WeakAuras.InsertCollapsed(id, "author", optionData.path, false)
       local newOption = CopyTable(childOptions[optionID])
       if newOption.key then
         local existingKeys = {}
@@ -1589,12 +1591,12 @@ local function addUserModeOption(options, args, data, order, prefix, i)
         local buttonWidth = option.limitType == "fixed" and 0 or 0.60
         args[prefix .. i .. "entryChoice"] = {
           type = "select",
-          name = L["Choose Entry"],
+          name = nameUser(option),
           order = order(),
           width = WeakAuras.doubleWidth - buttonWidth,
           values = values,
           get = function()
-            return page
+            return page or L["|cFFA9A9A9--Please Create an Entry--"]
           end,
           set = function(_, value)
             for id, optionData in pairs(option.references) do
