@@ -274,18 +274,18 @@ local function getNumAsString(option, key)
   end
 end
 
-local function getUserNum(option)
+local function getUserNumAsString(option)
   return function()
     local value
     for id, optionData in pairs(option.references) do
       if value == nil then
         value = optionData.config[option.key]
       elseif neq(value, optionData.config[option.key]) then
-        return
+        return ""
       end
     end
     if value ~= nil then
-      return value
+      return tostring(value)
     end
   end
 end
@@ -1729,7 +1729,7 @@ local function addUserModeOption(options, args, data, order, prefix, i)
     -- toggle and input don't need any extra love
     if optionType == "number" then
       userOption.type = "input"
-      userOption.get = getUserNum(option)
+      userOption.get = getUserNumAsString(option)
       userOption.set = setUserNum(data, option, true)
     elseif optionType == "range" then
       userOption.softMax = option.softMax
