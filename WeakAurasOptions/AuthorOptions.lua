@@ -2065,6 +2065,7 @@ function WeakAuras.GetAuthorOptions(data, args, startorder)
           end
         else
           data.config = {}
+          WeakAuras.ResetCollapsed(data.id, "config")
           WeakAuras.Add(data)
         end
         WeakAuras.ReloadTriggerOptions(data)
