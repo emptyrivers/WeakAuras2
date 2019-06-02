@@ -3073,12 +3073,25 @@ local function validateUserConfig(options, config)
       local subConfig = config[option.key]
       if option.groupType == "array" then
         for k, v in pairs(subConfig) do
-          if type(k) == "number" and type(v) == "table" then
-            validateUserConfig(subOptions, v)
-          else
+          if type(k) ~= "number" or type(v) ~= "table" then
             wipe(subConfig) -- an empty table is a valid array
             break
           end
+        end
+        if option.limitType ~= "none" then
+          for i = option.size + 1, #subConfig do
+            -- remove excess entries
+            subConfig[i] = nil
+          end
+          if option.limitType == "fixed" then
+            for i = #subConfig + 1, option.size do
+              -- add missing entries
+              subConfig[i] = {}
+            end
+          end
+        end
+        for _, toValidate in pairs(subConfig) do
+          validateUserConfig(subOptions, toValidate)
         end
       else
         if type(next(subConfig)) ~= "string" then

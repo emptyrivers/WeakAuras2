@@ -1472,7 +1472,7 @@ local function getPage(id, path, max)
     end
     base = base[index]
   end
-  if not base.page or base.page > max then
+  if not base.page or (max and base.page > max) then
     base.page = 1
   end
   return base.page
@@ -1585,7 +1585,7 @@ local function addUserModeOption(options, args, data, order, prefix, i)
           if page == nil then
             page = getPage(id, optionData.path)
           elseif page ~= getPage(optionData.data.id, optionData.path) then
-            return
+            page = 0
           end
         end
         local buttonWidth = option.limitType == "fixed" and 0 or 0.60
@@ -1596,7 +1596,13 @@ local function addUserModeOption(options, args, data, order, prefix, i)
           width = WeakAuras.doubleWidth - buttonWidth,
           values = values,
           get = function()
-            return page or L["|cFFA9A9A9--Please Create an Entry--"]
+            if not page then
+              return L["|cFFA9A9A9--Please Create an Entry--"]
+            elseif page > 0 then
+              return page
+            else
+              return ""
+            end
           end,
           set = function(_, value)
             for id, optionData in pairs(option.references) do
@@ -1625,7 +1631,17 @@ local function addUserModeOption(options, args, data, order, prefix, i)
               WeakAuras.ReloadTriggerOptions(data)
             end,
             disabled = function()
-              return option.limitType ~= "none" and page == #values
+              if option.limitType == "none" then
+                return false
+              else
+                for id, optionData in pairs(option.references) do
+                  local childOption = optionData.options[optionData.index]
+                  local childConfigList = optionData.config[childOption.key]
+                  if #childConfigList >= childOption.size then
+                    return true
+                  end
+                end
+              end
             end,
             width = 0.15,
             image = "Interface\\AddOns\\WeakAuras\\Media\\Textures\\add",
@@ -1668,15 +1684,21 @@ local function addUserModeOption(options, args, data, order, prefix, i)
                 local childOption = optionData.options[optionData.index]
                 local childConfigList = optionData.config[childOption.key]
                 local childData = optionData.data
-                if childConfigList[page] then
-                  childConfigList[page], childConfigList[page - 1] = childConfigList[page - 1], childConfigList[page]
+                local childPage = getPage(id, optionData.path, #childConfigList)
+                if childConfigList[childPage] then
+                  childConfigList[childPage], childConfigList[childPage - 1] = childConfigList[childPage - 1], childConfigList[childPage]
+                  setPage(id, optionData.path, childPage - 1)
                   WeakAuras.Add(childData)
                 end
               end
               WeakAuras.ReloadTriggerOptions(data)
             end,
             disabled = function()
-              return noValues or page == 1
+              for id, optionData in pairs(option.references) do
+                if getPage(id, optionData.path) <= 1 then
+                  return true
+                end
+              end
             end,
             width = 0.15,
             image = "Interface\\AddOns\\WeakAuras\\Media\\Textures\\moveup",
@@ -1693,15 +1715,24 @@ local function addUserModeOption(options, args, data, order, prefix, i)
                 local childOption = optionData.options[optionData.index]
                 local childConfigList = optionData.config[childOption.key]
                 local childData = optionData.data
-                if childConfigList[page + 1] then
-                  childConfigList[page], childConfigList[page + 1] = childConfigList[page + 1], childConfigList[page]
+                local childPage = getPage(id, optionData.path, #childConfigList)
+                if childConfigList[childPage] then
+                  childConfigList[childPage], childConfigList[childPage + 1] = childConfigList[childPage + 1], childConfigList[childPage]
+                  setPage(id, optionData.path, childPage + 1)
                   WeakAuras.Add(childData)
                 end
               end
               WeakAuras.ReloadTriggerOptions(data)
             end,
             disabled = function()
-              return noValues or page == #values
+              for id, optionData in pairs(option.references) do
+                local childPage = getPage(id, optionData.path)
+                local childOption = optionData.options[optionData.index]
+                local childConfigList = optionData.config[childOption.key]
+                if childPage >= #childConfigList then
+                  return true
+                end
+              end
             end,
             width = 0.15,
             image = "Interface\\AddOns\\WeakAuras\\Media\\Textures\\movedown",
