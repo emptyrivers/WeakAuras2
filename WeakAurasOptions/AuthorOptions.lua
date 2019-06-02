@@ -1580,15 +1580,7 @@ local function addUserModeOption(options, args, data, order, prefix, i)
       end
 
       if option.groupType ~= "simple" then
-        local page
-        for id, optionData in pairs(option.references) do
-          if page == nil then
-            page = getPage(id, optionData.path)
-          elseif page ~= getPage(optionData.data.id, optionData.path) then
-            page = 0
-          end
-        end
-        local buttonWidth = option.limitType == "fixed" and 0 or 0.60
+        local buttonWidth = option.limitType == "fixed" and 0.30 or 0.60
         args[prefix .. i .. "entryChoice"] = {
           type = "select",
           name = nameUser(option),
@@ -1596,13 +1588,20 @@ local function addUserModeOption(options, args, data, order, prefix, i)
           width = WeakAuras.doubleWidth - buttonWidth,
           values = values,
           get = function()
-            if not page then
-              return L["|cFFA9A9A9--Please Create an Entry--"]
-            elseif page > 0 then
-              return page
-            else
-              return ""
+            if noValues then
+              return 1 -- show the "create" prompt, which is at index 1
             end
+            local value
+            for id, optionData in pairs(option.references) do
+              local childOption = optionData.options[optionData.index]
+              local childConfigList = optionData.config[childOption.key]
+              if value == nil then
+                value = getPage(id, optionData.path, #childConfigList)
+              elseif value ~= getPage(id, optionData.path, #childConfigList) then
+                return ""
+              end
+            end
+            return value
           end,
           set = function(_, value)
             for id, optionData in pairs(option.references) do
@@ -1675,72 +1674,72 @@ local function addUserModeOption(options, args, data, order, prefix, i)
             imageHeight = 18,
             control = "WeakAurasIcon"
           }
-          args[prefix .. i .. "moveEntryUp"] = {
-            type = "execute",
-            name = L["Move Entry Up"],
-            order = order(),
-            func = function()
-              for id, optionData in pairs(option.references) do
-                local childOption = optionData.options[optionData.index]
-                local childConfigList = optionData.config[childOption.key]
-                local childData = optionData.data
-                local childPage = getPage(id, optionData.path, #childConfigList)
-                if childConfigList[childPage] then
-                  childConfigList[childPage], childConfigList[childPage - 1] = childConfigList[childPage - 1], childConfigList[childPage]
-                  setPage(id, optionData.path, childPage - 1)
-                  WeakAuras.Add(childData)
-                end
-              end
-              WeakAuras.ReloadTriggerOptions(data)
-            end,
-            disabled = function()
-              for id, optionData in pairs(option.references) do
-                if getPage(id, optionData.path) <= 1 then
-                  return true
-                end
-              end
-            end,
-            width = 0.15,
-            image = "Interface\\AddOns\\WeakAuras\\Media\\Textures\\moveup",
-            imageWidth = 18,
-            imageHeight = 18,
-            control = "WeakAurasIcon"
-          }
-          args[prefix .. i .. "moveEntryDown"] = {
-            type = "execute",
-            name = L["Move Entry Up"],
-            order = order(),
-            func = function()
-              for id, optionData in pairs(option.references) do
-                local childOption = optionData.options[optionData.index]
-                local childConfigList = optionData.config[childOption.key]
-                local childData = optionData.data
-                local childPage = getPage(id, optionData.path, #childConfigList)
-                if childConfigList[childPage] then
-                  childConfigList[childPage], childConfigList[childPage + 1] = childConfigList[childPage + 1], childConfigList[childPage]
-                  setPage(id, optionData.path, childPage + 1)
-                  WeakAuras.Add(childData)
-                end
-              end
-              WeakAuras.ReloadTriggerOptions(data)
-            end,
-            disabled = function()
-              for id, optionData in pairs(option.references) do
-                local childPage = getPage(id, optionData.path)
-                local childOption = optionData.options[optionData.index]
-                local childConfigList = optionData.config[childOption.key]
-                if childPage >= #childConfigList then
-                  return true
-                end
-              end
-            end,
-            width = 0.15,
-            image = "Interface\\AddOns\\WeakAuras\\Media\\Textures\\movedown",
-            imageWidth = 18,
-            imageHeight = 18,
-            control = "WeakAurasIcon"
-          }
         end
+        args[prefix .. i .. "moveEntryUp"] = {
+          type = "execute",
+          name = L["Move Entry Up"],
+          order = order(),
+          func = function()
+            for id, optionData in pairs(option.references) do
+              local childOption = optionData.options[optionData.index]
+              local childConfigList = optionData.config[childOption.key]
+              local childData = optionData.data
+              local childPage = getPage(id, optionData.path, #childConfigList)
+              if childConfigList[childPage] then
+                childConfigList[childPage], childConfigList[childPage - 1] = childConfigList[childPage - 1], childConfigList[childPage]
+                setPage(id, optionData.path, childPage - 1)
+                WeakAuras.Add(childData)
+              end
+            end
+            WeakAuras.ReloadTriggerOptions(data)
+          end,
+          disabled = function()
+            for id, optionData in pairs(option.references) do
+              if getPage(id, optionData.path) <= 1 then
+                return true
+              end
+            end
+          end,
+          width = 0.15,
+          image = "Interface\\AddOns\\WeakAuras\\Media\\Textures\\moveup",
+          imageWidth = 18,
+          imageHeight = 18,
+          control = "WeakAurasIcon"
+        }
+        args[prefix .. i .. "moveEntryDown"] = {
+          type = "execute",
+          name = L["Move Entry Up"],
+          order = order(),
+          func = function()
+            for id, optionData in pairs(option.references) do
+              local childOption = optionData.options[optionData.index]
+              local childConfigList = optionData.config[childOption.key]
+              local childData = optionData.data
+              local childPage = getPage(id, optionData.path, #childConfigList)
+              if childConfigList[childPage] then
+                childConfigList[childPage], childConfigList[childPage + 1] = childConfigList[childPage + 1], childConfigList[childPage]
+                setPage(id, optionData.path, childPage + 1)
+                WeakAuras.Add(childData)
+              end
+            end
+            WeakAuras.ReloadTriggerOptions(data)
+          end,
+          disabled = function()
+            for id, optionData in pairs(option.references) do
+              local childPage = getPage(id, optionData.path)
+              local childOption = optionData.options[optionData.index]
+              local childConfigList = optionData.config[childOption.key]
+              if childPage >= #childConfigList then
+                return true
+              end
+            end
+          end,
+          width = 0.15,
+          image = "Interface\\AddOns\\WeakAuras\\Media\\Textures\\movedown",
+          imageWidth = 18,
+          imageHeight = 18,
+          control = "WeakAurasIcon"
+        }
       end
       if option.groupType == "simple" or not noValues then
         for j = 1, #option.subOptions do
@@ -1994,10 +1993,7 @@ function WeakAuras.GetAuthorOptions(data, args, startorder)
     for i = 1, #data.controlledChildren do
       local childData = WeakAuras.GetData(data.controlledChildren[i])
       mergeOptions(options, childData, childData.authorOptions, childData.config, {})
-      if childData and not childData.authorMode then
-        isAuthorMode = false
-        break
-      end
+      isAuthorMode = isAuthorMode and childData.authorMode
     end
   else
     -- pretend that this is a group with one child
@@ -2029,10 +2025,8 @@ function WeakAuras.GetAuthorOptions(data, args, startorder)
       name = "",
       order = order()
     }
-    local path = {0}
     for i = 1, #options do
-      path[#path] = i
-      addAuthorModeOption(options, args, data, order, "option", i, path)
+      addAuthorModeOption(options, args, data, order, "option", i)
     end
     args["addOption"] = {
       type = "execute",
