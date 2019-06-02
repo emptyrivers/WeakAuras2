@@ -2946,27 +2946,6 @@ function WeakAuras.Modernize(data)
     end
   end
 
-  -- Version 15 was introduced in April 2019
-  -- This adds a path to everything in authorOptions
-  -- so that we can locate it.
-  -- The other option is that we can build it locally each time
-  -- as transient data
-  if data.internalVersion < 15 then
-    local function recursePath(option, basepath)
-      option.path = CopyTable(basepath)
-      if option.subOptions then
-        basepath[#basepath + 1] = 0
-        for index, subOption in ipairs(option.subOptions) do
-          basepath[#basepath] = index
-          recursePath(subOption, basepath)
-        end
-      end
-    end
-    for index, option in ipairs(data.authorOptions) do
-      recursePath(option, {index})
-    end
-  end
-
   for _, triggerSystem in pairs(triggerSystems) do
     triggerSystem.Modernize(data);
   end
