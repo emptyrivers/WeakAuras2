@@ -1836,6 +1836,10 @@ WeakAuras.author_option_fields = {
     desc = true,
     key = true,
     width = true,
+    useHidden = true,
+    hiddenType = "build",
+    useDisable = true,
+    disableType = "build",
   },
   number = {
     min = 0,
@@ -1889,6 +1893,11 @@ WeakAuras.author_option_fields = {
     size = 10,
     subOptions = {},
   }
+}
+
+WeakAuras.function_types = {
+  build = L["Function Builder"],
+  custom = L["Custom Code"],
 }
 
 WeakAuras.group_limit_types = {

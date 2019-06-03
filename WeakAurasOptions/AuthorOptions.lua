@@ -1458,6 +1458,49 @@ function addAuthorModeOption(options, args, data, order, prefix, i)
     addControlsForType(options, args, data, order, prefix, i)
     local option = options[i]
   end
+
+  -- hidden/disable
+  args[prefix .. "useHidden"] = {
+    type = "toggle",
+    name = name(option, "useHidden", L["Hidden"]),
+    order = order(),
+    width = WeakAuras.normalWidth,
+    get = get(option, "useHidden"),
+    set = set(data, option, "useHidden"),
+  }
+  args[prefix .. "hiddenType"] = {
+    type = "select",
+    name = name(option, "useHidden", L["Hidden"]),
+    order = order(),
+    width = WeakAuras.normalWidth,
+    values = WeakAuras.function_types,
+    get = get(option, "useHidden"),
+    set = set(data, option, "useHidden"),
+    disable = function() return not option.useHidden end,
+  }
+  if option.useHidden then
+    if option.hiddenType == "custom" then
+      local multipath = {}
+      for id, optionData in pairs(option.references) do
+        local data = optionData.data
+        local childPath = {"authorOptions", optionData.index}
+        for i = 2, #optionData.path do
+          tinsert(childPath, "subOptions")
+          tinsert(childPath(optionData.path[i]))
+        end
+        multipath[id] = childPath
+      end
+      WeakAuras.AddCodeOption(args, data, L["Custom Hide Function"], multipath)
+    end
+  end
+  args[prefix .. "useDisable"] = {
+    type = "toggle",
+    name = name(option, "useHidden", L["Hidden"]),
+    order = order(),
+    width = WeakAuras.normalWidth,
+    get = get(option, "useHidden"),
+    set = set(data, option, "useHidden"),
+  }
 end
 
 local groupPages = {}
