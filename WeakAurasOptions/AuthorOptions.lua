@@ -249,7 +249,9 @@ local function getUser(option)
   return function()
     local value
     for id, optionData in pairs(option.references) do
-      if value == nil then
+      if not optionData.config then
+        return
+      elseif value == nil then
         value = optionData.config[option.key]
       elseif neq(value, optionData.config[option.key]) then
         return
@@ -1037,7 +1039,16 @@ typeControlAdders = {
       order = order(),
       width = WeakAuras.normalWidth,
       get = get(option, "collapse"),
-      set = set(data, option, "collapse"),
+      set = function(_, value)
+        for id, optionData in pairs(option.references) do
+          local childOption = optionData.options[optionData.index]
+          local childData = optionData.data
+          childOption.collapse = value
+          WeakAuras.SetCollapsed(id, "config", optionData.path, value)
+          WeakAuras.Add(childData)
+        end
+        WeakAuras.ReloadTriggerOptions(data)
+      end,
       disabled = function() return not option.useCollapse end
     }
     if option.groupType ~="simple" then
@@ -1520,15 +1531,11 @@ local function addUserModeOption(options, args, data, order, prefix, i)
       if option.collapse ~= nil then
         defaultCollapsed = option.collapse
       end
-      if option.references then
-        for id in pairs(option.references) do
-          if WeakAuras.IsCollapsed(id, "config", prefix .. i, defaultCollapsed) then
-            collapsed = true
-            break
-          end
+      for id, optionData in pairs(option.references) do
+        if WeakAuras.IsCollapsed(id, "config", optionData.path, defaultCollapsed) then
+          collapsed = true
+          break
         end
-      else
-        collapsed = WeakAuras.IsCollapsed(data.id, "config", prefix .. i, defaultCollapsed)
       end
       args[prefix .. i .. "collapse"] = {
         type = "execute",
@@ -1536,8 +1543,8 @@ local function addUserModeOption(options, args, data, order, prefix, i)
         order = order(),
         width = WeakAuras.doubleWidth,
         func = function()
-          for id in pairs(option.references) do
-            WeakAuras.SetCollapsed(id, "config", prefix .. i, not collapsed)
+          for id, optionData in pairs(option.references) do
+            WeakAuras.SetCollapsed(id, "config", optionData.path, not collapsed)
           end
           WeakAuras.ReloadTriggerOptions(data)
         end,
@@ -1911,9 +1918,13 @@ local function mergeOptions(mergedOptions, data, options, config, prepath)
         if k == "subOptions" then
           local subConfig
           if config then
-            local configList = config[mergedOption.key]
-            local page = getPage(data.id, path, #configList)
-            subConfig = configList[page]
+            if mergedOption.groupType == "simple" then
+              subConfig = config[mergedOption.key]
+            else
+              local configList = config[mergedOption.key]
+              local page = getPage(data.id, path, #configList)
+              subConfig = configList[page]
+            end
           end
           mergeOptions(mergedOption.subOptions, data, v, subConfig, path)
         elseif neq(mergedOption[k], v) then
@@ -1960,15 +1971,37 @@ local function valuesAreEqual(t1, t2)
   return true
 end
 
-local function allChoicesAreDefault(options)
-  for _, option in ipairs(options) do
-    if optionClasses[option.type] ~= "noninteractive" then
-      for id, optionData in pairs(option.references) do
-        local childOption = optionData.options[optionData.index]
-        local childConfig = optionData.config
-        if not valuesAreEqual(childOption.default, childConfig[option.key]) then
+local function allChoicesAreDefault(option, config, id, path)
+  local optionClass = optionClasses[option.type]
+  if optionClass == "simple" then
+    return valuesAreEqual(option.default, config[option.key])
+  elseif optionClass == "group" then
+    if option.groupType == "simple" then
+      local subConfig = config[option.key]
+      path[#path + 1] = 0
+      for i, subOption in ipairs(option.subOptions) do
+        path[#path] = i
+        if not allChoicesAreDefault(subOption, subConfig) then
           return false
         end
+      end
+      path[#path] = nil
+    elseif option.groupType == "array" then
+      path[#path + 1] = 0
+      for _, subConfig in ipairs(config[option.key]) do
+        for i, subOption in ipairs(option.subOptions) do
+          path[#path] = i
+          if not allChoicesAreDefault(subOption, subConfig) then
+            return false
+          end
+        end
+      end
+      path[#path] = nil
+    end
+    if option.useCollapse then
+      local isCollapsed = WeakAuras.IsCollapsed(id, "config", path, option.collapse)
+      if isCollapsed ~= option.collapse then
+        return false
       end
     end
   end
@@ -2096,7 +2129,30 @@ function WeakAuras.GetAuthorOptions(data, args, startorder)
         WeakAuras.ReloadTriggerOptions(data)
       end,
       disabled = function()
-        return #options == 0 or allChoicesAreDefault(options)
+        local path = {}
+        if data.controlledChildren then
+          for _, id in pairs(data.controlledChildren) do
+            local childData = WeakAuras.GetData(id)
+            local childConfig = childData.config
+            for i, childOption in ipairs(childData.authorOptions) do
+              path[1] = i
+              local result = allChoicesAreDefault(childOption, childConfig, id, path)
+              if result == false then
+                return false
+              end
+            end
+          end
+        else
+          local config = data.config
+          for i, option in ipairs(data.authorOptions) do
+            path[1] = i
+            local result = allChoicesAreDefault(option, config, data.id, path)
+            if result == false then
+              return false
+            end
+          end
+        end
+        return true
       end
     }
     args["enterAuthorMode"] = {
