@@ -1232,7 +1232,7 @@ local function duplicate(data, options, index)
 end
 
 local function ensureNonDuplicateKey(option)
-  -- note: this has some unexpected behavior
+  -- note: this has some unintuitive behavior
   -- e.g. if aura A has option keys "foo", "bar"
   -- and aura B has option keys "foo", "baz",
   -- then you still cannot change the merged option with key "foo" to "bar"
