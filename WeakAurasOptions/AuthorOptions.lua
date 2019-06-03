@@ -1053,7 +1053,6 @@ typeControlAdders = {
       disabled = function() return not option.useCollapse end
     }
     if option.groupType ~="simple" then
-      local values = CopyTable(WeakAuras.group_limit_types)
       args[prefix .. "limitType"] = {
         type = "select",
         name = name(option, "limitType", L["Number of Entries"]),
