@@ -1211,7 +1211,9 @@ local function duplicate(data, options, index)
       if newOption.key then
         local existingKeys = {}
         for _, option in ipairs(childOptions) do
-          existingKeys[option.key] = true
+          if option.key then
+            existingKeys[option.key] = true
+          end
         end
         while existingKeys[newOption.key] do
           newOption.key = newOption.key .. "copy"
