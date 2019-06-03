@@ -1981,7 +1981,7 @@ local function allChoicesAreDefault(option, config, id, path)
       path[#path + 1] = 0
       for i, subOption in ipairs(option.subOptions) do
         path[#path] = i
-        if not allChoicesAreDefault(subOption, subConfig) then
+        if not allChoicesAreDefault(subOption, subConfig, id, path) then
           return false
         end
       end
@@ -1991,7 +1991,7 @@ local function allChoicesAreDefault(option, config, id, path)
       for _, subConfig in ipairs(config[option.key]) do
         for i, subOption in ipairs(option.subOptions) do
           path[#path] = i
-          if not allChoicesAreDefault(subOption, subConfig) then
+          if not allChoicesAreDefault(subOption, subConfig, id, path) then
             return false
           end
         end
