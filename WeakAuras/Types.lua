@@ -1900,7 +1900,6 @@ WeakAuras.group_limit_types = {
 WeakAuras.group_option_types = {
   simple = L["Simple"],
   array = L["Array"],
-  -- hash = L["Hash"], -- TODO: decide if we actually want this
 }
 
 WeakAuras.difficulty_info = {

@@ -1054,9 +1054,6 @@ typeControlAdders = {
     }
     if option.groupType ~="simple" then
       local values = CopyTable(WeakAuras.group_limit_types)
-      if option.limitType == "hash" then
-        values.fixed = nil -- see todo comment below
-      end
       args[prefix .. "limitType"] = {
         type = "select",
         name = name(option, "limitType", L["Number of Entries"]),
@@ -1080,17 +1077,6 @@ typeControlAdders = {
         set = set(data, option, "size"),
         disabled = function() return option.limitType == "none" end,
       }
-      -- if option.groupType == "hash" and option.limitType == "fixed" then
-        -- TODO: decide how to handle this case.
-        -- There may be cases where the author wants a fixed size hash table
-        -- which has the exact same options format for each entry.
-        -- That use case can also be achieved by duplicating the group itself
-        -- but then it is harder for the author to maintain.
-        -- We could assist the author by allowing a fixed size hash table
-        -- and then provide them a place to enter the names of the entries.
-        -- But it would bloat this generator a bit, and increase options merge complexity significantly.
-        -- So for now, don't allow a fixed size hash table.
-      -- end
     end
     args[prefix .. "groupStart"] = {
       type = "header",
