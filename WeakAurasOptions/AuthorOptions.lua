@@ -395,6 +395,7 @@ local function setNum(data, option, key, required)
       for id, optionData in pairs(option.references) do
         local childOption = optionData.options[optionData.index]
         local childData = optionData.data
+        childOption[key] = value
         WeakAuras.Add(childData)
       end
     elseif not required then
@@ -570,7 +571,7 @@ typeControlAdders = {
   range = function(options, args, data, order, prefix, i)
     local option = options[i]
     args[prefix .. i .. "default"] = {
-      type = "input",
+      type = "range",
       width = WeakAuras.normalWidth,
       name = name(option, "default", L["Default"]),
       desc = desc(option, "default"),
