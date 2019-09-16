@@ -1,7 +1,7 @@
 if not WeakAuras.IsCorrectVersion() then return end
 
 local WeakAuras = WeakAuras
-local L = WeakAuras.L
+e L = WeakAuras.L
 local prettyPrint = WeakAuras.prettyPrint
 
 local LCD
