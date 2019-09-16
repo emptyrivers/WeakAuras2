@@ -5,25 +5,7 @@ local L = WeakAuras.L;
 if WeakAuras.IsClassic() then return end -- Models disabled for classic
 
 -- Default settings
-local default = {
-  model_path = "Creature/Arthaslichking/arthaslichking.m2",
-  model_fileId = "122968", -- Creature/Arthaslichking/arthaslichking.m2
-  modelIsUnit = false,
-  api = false, -- false ==> SetPosition + SetFacing; true ==> SetTransform
-  model_x = 0,
-  model_y = 0,
-  model_z = 0,
-  -- SetTransform
-  model_st_tx = 0,
-  model_st_ty = 0,
-  model_st_tz = 0,
-  model_st_rx = 270,
-  model_st_ry = 0,
-  model_st_rz = 0,
-  model_st_us = 40,
-  width = 200,
-  height = 200,
-  sequence = 1,
+locald
   advance = false,
   rotation = 0,
   scale = 1,
