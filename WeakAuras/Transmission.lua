@@ -669,7 +669,7 @@ function WeakAuras.DisplayToString(id, forChat)
     data.uid = data.uid or GenerateUniqueID()
     local transmitData = CompressDisplay(data);
     local children = data.controlledChildren;
-       local transmit = {
+    local transmit = {
       m = "d",
       d = transmitData,
       v = 1421, -- Version of Transmisson, won't change anymore.
