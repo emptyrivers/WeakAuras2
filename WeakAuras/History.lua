@@ -28,6 +28,63 @@ function WeakAuras.LoadHistory(historydb, ageCutoff, migrationExpiry)
   WeakAuras.ClearOldMigrations(migrationExpiry)
 end
 
+--* Public-facing API
+--* This API accepts an encoded string, array, single data table, or transmission table
+--* and imports the data as history, with source == "import"
+function WeakAuras.ImportHistory(payload, override)
+  local ok, msg = true
+  local data
+  -- decode payload into data
+  if type(payload) == "string" then
+    local decoded = WeakAuras.Decode(payload, true)
+    if type(decoded) ~= "table" then
+      ok = nil
+      msg = ("Error decoding payload. Reason: |cFFFF0000%s|r"):format(decoded)
+    else
+      data = decoded
+    end
+  elseif type(payload) ~= "table" then
+    ok, msg = nil, "payload is not an importable object"
+  end
+  local entries = {}
+  if ok ~= nil then
+    if type(data.uid) == "string" then
+      -- assume that the payload is a single table
+      entries[data.uid] = data
+    elseif data.m == "d" and type(data.d) == "table" then
+      if type(data.d.uid) == "string" then
+        entries[data.d.uid] = data.d
+      end
+      if type(data.c) == "table" then
+        for _, child in ipairs(data.c) do
+          if type(child) == "table" and type(child.uid) == "string" then
+            entries[child.uid] = child
+          end
+        end
+      end
+    else
+      for _, aura in ipairs(data) do
+        if type(aura) == "table" and type(aura.uid) == "string" then
+          entries[aura.uid] = aura
+        end
+      end
+    end
+  end
+  local imported, skipped = 0, 0
+  for uid, data in pairs(entries) do
+    local hist = WeakAuras.GetHistory(uid)
+    if not hist or override then
+      imported = imported + 1
+      WeakAuras.SetHistory(uid, data, "import")
+    else
+      ok = false
+      skipped = skipped + 1
+    end
+  end
+  msg = ("Imported: %i, Skipped: %i"):format(imported, skipped)
+  return ok, msg
+end
+
 function WeakAuras.SetHistory(uid, data, source, addon)
   if uid and data then
     history[uid] = history[uid] or {}

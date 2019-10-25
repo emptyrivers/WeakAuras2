@@ -43,7 +43,7 @@ local status_types = WeakAuras.status_types;
 
 -- Local functions
 local decodeB64, GenerateUniqueID
-local CompressDisplay, ShowTooltip, TableToString, StringToTable
+local CompressDisplay, ShowTooltip
 local RequestDisplay, TransmitError, TransmitDisplay
 
 local bytetoB64 = {
@@ -613,7 +613,7 @@ hooksecurefunc("SetItemRef", function(link, text)
   end
 end);
 
-function TableToString(inTable, forChat)
+function WeakAuras.Encode(inTable, forChat)
   local serialized = Serializer:Serialize(inTable)
   local compressed = LibDeflate:CompressDeflate(serialized, configForDeflate)
   -- prepend with "!" so that we know that it is not a legacy compression
@@ -627,7 +627,8 @@ function TableToString(inTable, forChat)
   return encoded
 end
 
-function StringToTable(inString, fromChat)
+
+function WeakAuras.Decode(inString, fromChat)
   -- if gsub strips off a ! at the beginning then we know that this is not a legacy encoding
   local encoded, usesDeflate = inString:gsub("^%!", "")
   local decoded
@@ -703,7 +704,7 @@ function WeakAuras.DisplayToString(id, forChat)
         end
       end
     end
-    return TableToString(transmit, forChat);
+    return WeakAuras.Encode(transmit, forChat);
   else
     return "";
   end
@@ -1710,7 +1711,7 @@ function WeakAuras.Import(inData, target)
   local data, children, icon, icons
   if type(inData) == 'string' then
     -- encoded data
-    local received = StringToTable(inData, true)
+    local received = WeakAuras.Decode(inData, true)
     if type(received) == 'string' then
       -- this is probably an error message from LibDeflate. Display it.
       ShowTooltip{
@@ -1790,7 +1791,7 @@ function RequestDisplay(characterName, displayName)
     m = "dR",
     d = displayName
   };
-  local transmitString = TableToString(transmit);
+  local transmitString = WeakAuras.Encode(transmit);
   crossRealmSendCommMessage("WeakAuras", transmitString, characterName);
 end
 
@@ -1799,7 +1800,7 @@ function TransmitError(errorMsg, characterName)
     m = "dE",
     eM = errorMsg
   };
-  crossRealmSendCommMessage("WeakAuras", TableToString(transmit), characterName);
+  crossRealmSendCommMessage("WeakAuras", WeakAuras.Encode(transmit), characterName);
 end
 
 function TransmitDisplay(id, characterName)
@@ -1856,7 +1857,7 @@ Comm:RegisterComm("WeakAuras", function(prefix, message, distribution, sender)
       end
     end
   end
-  local received = StringToTable(message);
+  local received = WeakAuras.Decode(message);
   if(received and type(received) == "table" and received.m) then
     if(received.m == "d") and safeSenders[sender] then
       tooltipLoading = nil;
