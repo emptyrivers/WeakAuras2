@@ -1,4 +1,8 @@
-if not WeakAuras.IsCorrectVersion() then return end
+if not WeakAuras.IsLibsOK() then return end
+---@type string
+local AddonName = ...
+---@class OptionsPrivate
+local OptionsPrivate = select(2, ...)
 
 -- Lua APIs
 local pairs = pairs
@@ -10,6 +14,7 @@ local AceGUI = LibStub("AceGUI-3.0")
 local SharedMedia = LibStub("LibSharedMedia-3.0")
 local IndentationLib = IndentationLib
 
+---@class WeakAuras
 local WeakAuras = WeakAuras
 local L = WeakAuras.L
 
@@ -27,7 +32,7 @@ local colorScheme = {
   [IndentationLib.tokens.TOKEN_COMMENT_LONG] = "|c0000aa00",
   [IndentationLib.tokens.TOKEN_NUMBER] = "|c00ff9900",
   [IndentationLib.tokens.TOKEN_STRING] = "|c00999999",
-  -- ellipsis, curly braces, table acces
+  -- ellipsis, curly braces, table access
   ["..."] = tableColor,
   ["{"] = tableColor,
   ["}"] = tableColor,
@@ -55,29 +60,35 @@ local colorScheme = {
 }
 
 local function ConstructCodeReview(frame)
-  local group = AceGUI:Create("InlineGroup");
+  local group = AceGUI:Create("WeakAurasInlineGroup");
   group.frame:SetParent(frame);
-  group.frame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -17, 30);
-  group.frame:SetPoint("TOPLEFT", frame, "TOPLEFT", 17, -10);
+  group.frame:SetPoint("TOPLEFT", frame, "TOPLEFT", 17, -63);
+  group.frame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -17, 46);
   group.frame:Hide();
   group:SetLayout("flow");
 
   local codeTree = AceGUI:Create("TreeGroup");
+  codeTree:SetTreeWidth(300, false)
+  codeTree:SetFullWidth(true)
+  codeTree:SetFullHeight(true)
+  codeTree:SetLayout("flow")
+  codeTree.dragger:Hide()
+  codeTree.border:SetBackdrop(nil)
+  codeTree.content:SetAllPoints()
   group.codeTree = codeTree;
-  group:SetLayout("fill");
   group:AddChild(codeTree);
 
   local codebox = AceGUI:Create("MultiLineEditBox");
-  codebox.frame:SetAllPoints(codeTree.content);
-  codebox.frame:SetFrameStrata("FULLSCREEN");
   codebox:SetLabel("");
-  group:AddChild(codebox);
+  codebox:DisableButton(true)
+  codebox:SetFullWidth(true)
+  codebox:SetFullHeight(true)
+  codeTree:AddChild(codebox)
 
-  codebox.button:Hide();
   IndentationLib.enable(codebox.editBox, colorScheme, 4);
   local fontPath = SharedMedia:Fetch("font", "Fira Mono Medium");
   if(fontPath) then
-    codebox.editBox:SetFont(fontPath, 12);
+    codebox.editBox:SetFont(fontPath, 12, "");
   end
   group.codebox = codebox;
 
@@ -91,7 +102,7 @@ local function ConstructCodeReview(frame)
 
   local cancel = CreateFrame("Button", nil, group.frame, "UIPanelButtonTemplate");
   cancel:SetScript("OnClick", function() group:Close() end);
-  cancel:SetPoint("bottomright", frame, "bottomright", -27, 11);
+  cancel:SetPoint("BOTTOMRIGHT", -20, -24);
   cancel:SetHeight(20);
   cancel:SetWidth(100);
   cancel:SetText(L["Okay"]);
@@ -101,32 +112,24 @@ local function ConstructCodeReview(frame)
       return
     end
 
+    local _, firstEntry = next(data)
     self.data = data;
-
     self.codeTree:SetTree(data);
-    self.codebox.frame:Show();
+    self.codeTree:SelectByValue(firstEntry.value)
 
-    WeakAuras.ShowOptions();
-
-    frame.importexport.frame:Hide();
-    frame.container.frame:Hide();
-    frame.buttonsContainer.frame:Hide();
-    self.frame:Show();
     frame.window = "codereview";
+    frame:UpdateFrameVisible()
   end
 
   function group.Close()
-    group.frame:Hide();
-    codebox.frame:Hide();
-    frame.container.frame:Show();
-    frame.buttonsContainer.frame:Show();
-    frame.window = "default";
+    frame.window = "update";
+    frame:UpdateFrameVisible()
   end
 
   return group
 end
 
-function WeakAuras.CodeReview(frame)
+function OptionsPrivate.CodeReview(frame)
   codeReview = codeReview or ConstructCodeReview(frame)
   return codeReview
 end

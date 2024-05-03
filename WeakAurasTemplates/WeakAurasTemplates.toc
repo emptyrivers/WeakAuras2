@@ -1,12 +1,8 @@
-#@retail@
-## Interface: 80200
-#@end-retail@
-#@non-retail@
-# ## Interface: 11302
-#@end-non-retail@
+## Interface: 100206
 ## Title: WeakAuras Templates
 ## Author: The WeakAuras Team
 ## Version: @project-version@
+## IconTexture: Interface\AddOns\WeakAuras\Media\Textures\icon.blp
 ## Notes: Templates for WeakAuras
 ## X-Category: Interface Enhancements
 ## Globe-Main: WeakAuras
@@ -14,11 +10,9 @@
 ## LoadOnDemand: 1
 ## Dependencies: WeakAuras, WeakAurasOptions
 
-#@retail@
 locales.xml
 
 TriggerTemplates.lua
 TriggerTemplatesData.lua
 
 AceGUI-Widgets\AceGUIContainer-WeakAurasTemplateGroup.lua
-#@end-retail@

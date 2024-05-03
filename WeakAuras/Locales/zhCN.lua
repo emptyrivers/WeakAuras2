@@ -1,4 +1,4 @@
-if not(GetLocale() == "zhCN") then
+if (GAME_LOCALE or GetLocale()) ~= "zhCN" then
   return
 end
 

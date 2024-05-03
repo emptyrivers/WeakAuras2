@@ -1,7 +1,14 @@
-if not WeakAuras.IsCorrectVersion() then return end
+if not WeakAuras.IsLibsOK() then return end
+---@type string
+local AddonName = ...
+---@class Private
+local Private = select(2, ...)
 
 local SharedMedia = LibStub("LibSharedMedia-3.0");
 local L = WeakAuras.L;
+
+local defaultFont = WeakAuras.defaultFont
+local defaultFontSize = WeakAuras.defaultFontSize
 
 local default = {
   displayText = "%p",
@@ -13,13 +20,17 @@ local default = {
   anchorFrameType = "SCREEN",
   xOffset = 0,
   yOffset = 0,
-  font = "Friz Quadrata TT",
-  fontSize = 12,
+  font = defaultFont,
+  fontSize = defaultFontSize,
   frameStrata = 1,
-  customTextUpdate = "update",
+  customTextUpdate = "event",
   automaticWidth = "Auto",
   fixedWidth = 200,
-  wordWrap = "WordWrap"
+  wordWrap = "WordWrap",
+
+  shadowColor = { 0, 0, 0, 1},
+  shadowXOffset = 1,
+  shadowYOffset = -1
 };
 
 local properties = {
@@ -36,17 +47,19 @@ local properties = {
     softMax = 72,
     step = 1,
     default = 12
-  }
+  },
+  displayText = {
+    display = L["Text"],
+    setter = "ChangeText",
+    type = "string"
+  },
 }
 
-WeakAuras.regionPrototype.AddProperties(properties, default);
-
-local function GetProperties(data)
-  return properties;
-end
+Private.regionPrototype.AddProperties(properties, default);
 
 local function create(parent)
-  local region = CreateFrame("FRAME", nil, parent);
+  local region = CreateFrame("Frame", nil, parent);
+  region.regionType = "text"
   region:SetMovable(true);
 
   local text = region:CreateFontString(nil, "OVERLAY");
@@ -54,33 +67,26 @@ local function create(parent)
   text:SetWordWrap(true);
   text:SetNonSpaceWrap(true);
 
-  region.values = {};
-  region.duration = 0;
-  region.expirationTime = math.huge;
-
-  WeakAuras.regionPrototype.create(region);
+  Private.regionPrototype.create(region);
 
   return region;
 end
 
 local function modify(parent, region, data)
-  WeakAuras.regionPrototype.modify(parent, region, data);
+  Private.regionPrototype.modify(parent, region, data);
   local text = region.text;
-
-  region.useAuto = WeakAuras.CanHaveAuto(data);
-  region.progressPrecision = data.progressPrecision;
-  region.totalPrecision = data.totalPrecision;
 
   local fontPath = SharedMedia:Fetch("font", data.font);
   text:SetFont(fontPath, data.fontSize, data.outline);
+  if not text:GetFont() and fontPath then -- workaround font not loading correctly
+    local objectName = "WeakAuras-Font-" .. data.font
+    local fontObject = _G[objectName] or CreateFont(objectName)
+    fontObject:SetFont(fontPath, data.fontSize, data.outline == "None" and "" or data.outline)
+    text:SetFontObject(fontObject)
+  end
   if not text:GetFont() then -- Font invalid, set the font but keep the setting
     text:SetFont(STANDARD_TEXT_FONT, data.fontSize, data.outline);
   end
-  if text:GetFont() then
-    text:SetText("")
-    WeakAuras.regionPrototype.SetTextOnText(text, data.displayText);
-  end
-  text.displayText = data.displayText;
   text:SetJustifyH(data.justify);
 
   text:ClearAllPoints();
@@ -91,7 +97,24 @@ local function modify(parent, region, data)
   region:SetWidth(region.width);
   region:SetHeight(region.height);
 
+  local tooltipType = Private.CanHaveTooltip(data);
+  if(tooltipType and data.useTooltip) then
+    if not region.tooltipFrame then
+      region.tooltipFrame = CreateFrame("Frame", nil, region);
+      region.tooltipFrame:SetAllPoints(region);
+      region.tooltipFrame:SetScript("OnEnter", function()
+        Private.ShowMouseoverTooltip(region, region);
+      end);
+      region.tooltipFrame:SetScript("OnLeave", Private.HideTooltip);
+    end
+    region.tooltipFrame:EnableMouse(true);
+  elseif region.tooltipFrame then
+    region.tooltipFrame:EnableMouse(false);
+  end
+
   text:SetTextHeight(data.fontSize);
+  text:SetShadowColor(unpack(data.shadowColor))
+  text:SetShadowOffset(data.shadowXOffset, data.shadowYOffset)
 
   text:ClearAllPoints();
   text:SetPoint(data.justify, region, data.justify);
@@ -112,16 +135,19 @@ local function modify(parent, region, data)
     region.width = data.fixedWidth;
     SetText = function(textStr)
       if text:GetFont() then
-        text:SetText(textStr);
+        text:SetText(WeakAuras.ReplaceRaidMarkerSymbols(textStr));
       end
 
       local height = text:GetStringHeight();
 
       if(region.height ~= height) then
-        region.height = text:GetStringHeight();
-        region:SetHeight(region.height);
-        if(data.parent and WeakAuras.regions[data.parent].region.PositionChildren) then
-          WeakAuras.regions[data.parent].region:PositionChildren();
+        region.height = height
+        region:SetHeight(height)
+        if data.parent then
+          Private.EnsureRegion(data.parent)
+          if Private.regions[data.parent].region.PositionChildren then
+            Private.regions[data.parent].region:PositionChildren()
+          end
         end
       end
     end
@@ -132,7 +158,7 @@ local function modify(parent, region, data)
     SetText = function(textStr)
       if(textStr ~= text.displayText) then
         if text:GetFont() then
-          WeakAuras.regionPrototype.SetTextOnText(text, textStr);
+          text:SetText(WeakAuras.ReplaceRaidMarkerSymbols(textStr));
         end
       end
       local width = text:GetWidth();
@@ -142,62 +168,118 @@ local function modify(parent, region, data)
         region.height = height;
         region:SetWidth(region.width);
         region:SetHeight(region.height);
-        if(data.parent and WeakAuras.regions[data.parent].region.PositionChildren) then
-          WeakAuras.regions[data.parent].region:PositionChildren();
+        if(data.parent and Private.regions[data.parent].region.PositionChildren) then
+          Private.regions[data.parent].region:PositionChildren();
         end
       end
     end
   end
 
-  local UpdateText
-  if WeakAuras.ContainsAnyPlaceHolders(data.displayText) then
-    UpdateText = function()
-      local textStr = data.displayText;
-      textStr = WeakAuras.ReplacePlaceHolders(textStr, region, nil);
-      if (textStr == nil or textStr == "") then
-        textStr = " ";
-      end
+  local containsCustomText = false
+  if Private.ContainsCustomPlaceHolder(data.displayText) then
+    containsCustomText = true
+  end
 
+  local formatters, everyFrameFormatters
+  do
+    local getter = function(key, default)
+      local fullKey = "displayText_format_" .. key
+      if (data[fullKey] == nil) then
+        data[fullKey] = default
+      end
+      return data[fullKey]
+    end
+
+    local texts = {}
+    tinsert(texts, data.displayText)
+
+    if type(data.conditions) == "table" then
+      for _, condition in ipairs(data.conditions) do
+        if type(condition.changes) == "table" then
+          for _, change in ipairs(condition.changes) do
+            if type(change.property) == "string"
+            and change.property == "displayText"
+            and type(change.value) == "string"
+            and Private.ContainsAnyPlaceHolders(change.value)
+            then
+              if not containsCustomText and Private.ContainsCustomPlaceHolder(change.value) then
+                containsCustomText = true
+              end
+              tinsert(texts, change.value)
+            end
+          end
+        end
+      end
+    end
+
+    formatters, everyFrameFormatters = Private.CreateFormatters(texts, getter, false, data)
+  end
+
+  local customTextFunc = nil
+  if containsCustomText and data.customText and data.customText ~= "" then
+    customTextFunc = WeakAuras.LoadFunction("return "..data.customText)
+  end
+
+  function region:ConfigureTextUpdate()
+    local UpdateText
+    if self.displayText and Private.ContainsAnyPlaceHolders(self.displayText) then
+      UpdateText = function()
+        local textStr = self.displayText;
+        textStr = Private.ReplacePlaceHolders(textStr, self, nil, false, formatters);
+        if (textStr == nil or textStr == "") then
+          textStr = " ";
+        end
+
+        SetText(textStr)
+      end
+    end
+
+    local Update
+    if customTextFunc and self.displayText and Private.ContainsCustomPlaceHolder(self.displayText) then
+      Update = function()
+        self.values.custom = Private.RunCustomTextFunc(self, customTextFunc)
+        UpdateText()
+      end
+    else
+      Update = UpdateText or function() end
+    end
+
+    local FrameTick
+    if Private.ContainsPlaceHolders(self.displayText, "p")
+      or Private.AnyEveryFrameFormatters(self.displayText, everyFrameFormatters)
+    then
+      FrameTick = UpdateText
+    end
+
+    if customTextFunc and data.customTextUpdate == "update" then
+      if Private.ContainsCustomPlaceHolder(self.displayText) then
+        FrameTick = function()
+          self.values.custom = Private.RunCustomTextFunc(self, customTextFunc)
+          UpdateText()
+        end
+      end
+    end
+
+    self.Update = Update
+    self.FrameTick = FrameTick
+
+    if not UpdateText then
+      local textStr = self.displayText
+      textStr = textStr:gsub("\\n", "\n");
       SetText(textStr)
     end
   end
 
-  local customTextFunc = nil
-  if(WeakAuras.ContainsCustomPlaceHolder(data.displayText) and data.customText) then
-    customTextFunc = WeakAuras.LoadFunction("return "..data.customText, region.id, "custom text")
-  end
-
-  local Update
-  if customTextFunc then
-    if UpdateText then
-      Update = function()
-        region.values.custom = WeakAuras.RunCustomTextFunc(region, customTextFunc)
-        UpdateText()
-      end
+  function region:ConfigureSubscribers()
+    if self.FrameTick then
+      self.subRegionEvents:AddSubscriber("FrameTick", self)
+    else
+      self.subRegionEvents:RemoveSubscriber("FrameTick", self)
     end
-  else
-    Update = UpdateText or function() end
-  end
 
-  local TimerTick
-  if WeakAuras.ContainsPlaceHolders(data.displayText, "p") then
-    TimerTick = UpdateText
-  end
-
-  local FrameTick
-  if customTextFunc and data.customTextUpdate == "update" then
-    FrameTick = function()
-      region.values.custom = WeakAuras.RunCustomTextFunc(region, customTextFunc)
-      UpdateText()
+    if self.Update and self.state then
+      self:Update()
     end
-  end
-
-  region.Update = Update
-  region.FrameTick = FrameTick
-  region.TimerTick = TimerTick
-
-  if not UpdateText then
-    SetText(data.displayText);
   end
 
   function region:Color(r, g, b, a)
@@ -235,15 +317,28 @@ local function modify(parent, region, data)
     region.text:SetTextHeight(size)
   end
 
-  WeakAuras.regionPrototype.modifyFinish(parent, region, data);
+  function region:ChangeText(msg)
+    self.displayText = msg
+    self:ConfigureTextUpdate()
+    self:ConfigureSubscribers()
+  end
+
+  region.displayText = data.displayText
+  region:ConfigureTextUpdate()
+  region:ConfigureSubscribers()
+  Private.regionPrototype.modifyFinish(parent, region, data);
 end
 
-WeakAuras.RegisterRegionType("text", create, modify, default, GetProperties);
+local function validate(data)
+  Private.EnforceSubregionExists(data, "subbackground")
+end
+
+Private.RegisterRegionType("text", create, modify, default, properties, validate);
 
 -- Fallback region type
 
 local function fallbackmodify(parent, region, data)
-  WeakAuras.regionPrototype.modify(parent, region, data);
+  Private.regionPrototype.modify(parent, region, data);
   local text = region.text;
 
   text:SetFont(STANDARD_TEXT_FONT, data.fontSize, data.outline and "OUTLINE" or nil);
@@ -259,7 +354,7 @@ local function fallbackmodify(parent, region, data)
 
   region.Update = function() end
 
-  WeakAuras.regionPrototype.modifyFinish(parent, region, data);
+  Private.regionPrototype.modifyFinish(parent, region, data);
 end
 
-WeakAuras.RegisterRegionType("fallback", create, fallbackmodify, default);
+Private.RegisterRegionType("fallback", create, fallbackmodify, default);

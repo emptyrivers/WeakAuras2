@@ -1,49 +1,65 @@
-name: PR-CI
+name: CI-PR
 
-on: [pull_request]
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, labeled]
 
 jobs:
   build:
+    permissions:
+      pull-requests: write
 
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v1
-    - name: Install and run Luacheck
-      run: |
-        sudo apt-get install luarocks
-        luarocks install --local luacheck
-        /home/runner/.luarocks/bin/luacheck . --no-color -q
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Update Build Date
-      run: sed -i "s/@build-time@/`date +%Y%m%d%H%M%S`/" WeakAuras/Init.lua
+      - name: Install and run Luacheck
+        uses: nebularg/actions-luacheck@v1
+        with:
+          args: "--no-color -q"
+          annotate: warning
 
-    - name: Create Retail Package
-      run: curl -s https://raw.githubusercontent.com/BigWigsMods/packager/master/release.sh | bash -s -- -d -z;
-      env:
-        CF_API_KEY: ${{ secrets.CF_API_KEY }}
-        GITHUB_OAUTH: ${{ secrets.GITHUB_OAUTH }}
-        WOWI_API_TOKEN: ${{ secrets.WOWI_API_TOKEN }}
+      - name: Update Build Date
+        run: sed -i "s/@build-time@/`date +%Y%m%d%H%M%S`/" WeakAuras/Init.lua
 
-    - uses: actions/upload-artifact@master
-      with:
-        name: WeakAuras-PR-${{ github.head_ref }}
-        path: .release/
+      - name: Flag Experimental Build
+        run: |
+          sed -i \
+          -e "s/--\[=====\[@non-experimental@/--@non-experimental@/" \
+          -e "s/--@end-non-experimental@\]=====\]/--@end-non-experimental/" WeakAuras/Init.lua
 
-    - name: Create Classic Package
-      run: curl -s https://raw.githubusercontent.com/BigWigsMods/packager/master/release.sh | bash -s -- -d -z -g 1.13.2 -m .pkgmeta-classic -w 24944;
-      env:
-        CF_API_KEY: ${{ secrets.CF_API_KEY }}
-        GITHUB_OAUTH: ${{ secrets.GITHUB_OAUTH }}
-        WOWI_API_TOKEN: ${{ secrets.WOWI_API_TOKEN }}
+      - name: Create Package
+        uses: BigWigsMods/packager@v2
+        with:
+          args: -d -z
 
-    - uses: actions/upload-artifact@master
-      with:
-        name: WeakAuras-PR-${{ github.head_ref }}-classic
-        path: .release/
+      - uses: actions/upload-artifact@v4
+        id: upload-artifact
+        with:
+          name: WeakAuras-PR#${{ github.event.number }}-${{ github.sha }}
+          path: .release/
 
-    #- name: Notify on Failure
-    #  if: failure()
-    #  run: curl -s https://raw.githubusercontent.com/DiscordHooks/travis-ci-discord-webhook/master/send.sh | bash -s -- failure $WEBHOOK_URL;
-    #  env:
-    #    WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+      - name: test
+        run: echo "test :o ${{ steps.upload-artifact.outputs.artifact-url }} "
+
+      - uses: exercism/pr-commenter-action@v1.5.1
+        if: ${{ contains(github.event.pull_request.labels.*.name, '🆕 Feature Preview') }}
+        with:
+          github-token: ${{ github.token }}
+          config-file: ".github/pr-commenter.yml"
+          template-variables: |
+            {
+              "repository": "${{ github.repository }}",
+              "build_id": "${{ steps.upload-artifact.outputs.artifact-id }}",
+              "run_id": "${{ github.run_id }}"
+            }
+
+      - name: Send Status to Discord
+        uses: nebularg/actions-discord-webhook@v1
+        with:
+          webhook_url: ${{ secrets.WEBHOOK_URL }}
+          status: ${{ job.status }}
+        if: failure()

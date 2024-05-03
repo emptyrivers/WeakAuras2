@@ -5,3 +5,10 @@ WeakAuras_Templates.lua
 WeakAuras/Libs/*
 !WeakAuras/Libs/LibDeflate
 format.bat
+**/desktop.ini
+.DS_Store
+.release
+.install
+.lua/*
+.vscode
+CHANGELOG.MD

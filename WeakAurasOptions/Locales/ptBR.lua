@@ -1,6 +1,6 @@
-if not WeakAuras.IsCorrectVersion() then return end
+if not WeakAuras.IsLibsOK() then return end
 
-if not(GetLocale() == "ptBR") then
+if (GAME_LOCALE or GetLocale()) ~= "ptBR" then
   return
 end
 

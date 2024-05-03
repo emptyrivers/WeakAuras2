@@ -1,4 +1,8 @@
-if not WeakAuras.IsCorrectVersion() then return end
+if not WeakAuras.IsLibsOK() then return end
+---@type string
+local AddonName = ...
+---@class OptionsPrivate
+local OptionsPrivate = select(2, ...)
 
 -- Lua APIs
 local pairs = pairs
@@ -7,24 +11,20 @@ local pairs = pairs
 local CreateFrame, IsMouseButtonDown, SetCursor, GetMouseFocus, MouseIsOver, ResetCursor
   = CreateFrame, IsMouseButtonDown, SetCursor, GetMouseFocus, MouseIsOver, ResetCursor
 
-local AceConfigDialog = LibStub("AceConfigDialog-3.0")
-
+---@class WeakAuras
 local WeakAuras = WeakAuras
 local L = WeakAuras.L
-
-local valueFromPath = WeakAuras.ValueFromPath
-local valueToPath = WeakAuras.ValueToPath
 
 local frameChooserFrame
 local frameChooserBox
 
 local oldFocus
 local oldFocusName
-function WeakAuras.StartFrameChooser(data, path)
-  local frame = WeakAuras.OptionsFrame();
+function OptionsPrivate.StartFrameChooser(data, path)
+  local frame = OptionsPrivate.Private.OptionsFrame();
   if not(frameChooserFrame) then
-    frameChooserFrame = CreateFrame("frame");
-    frameChooserBox = CreateFrame("frame", nil, frameChooserFrame);
+    frameChooserFrame = CreateFrame("Frame");
+    frameChooserBox = CreateFrame("Frame", nil, frameChooserFrame, "BackdropTemplate");
     frameChooserBox:SetFrameStrata("TOOLTIP");
     frameChooserBox:SetBackdrop({
       edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -34,15 +34,15 @@ function WeakAuras.StartFrameChooser(data, path)
     frameChooserBox:SetBackdropBorderColor(0, 1, 0);
     frameChooserBox:Hide();
   end
-  local givenValue = valueFromPath(data, path);
+  local givenValue = OptionsPrivate.Private.ValueFromPath(data, path);
 
   frameChooserFrame:SetScript("OnUpdate", function()
     if(IsMouseButtonDown("RightButton")) then
-      valueToPath(data, path, givenValue);
-      AceConfigDialog:Open("WeakAuras", frame.container);
-      WeakAuras.StopFrameChooser(data);
+      OptionsPrivate.Private.ValueToPath(data, path, givenValue);
+      OptionsPrivate.StopFrameChooser(data);
+      WeakAuras.FillOptions()
     elseif(IsMouseButtonDown("LeftButton") and oldFocusName) then
-      WeakAuras.StopFrameChooser(data);
+      OptionsPrivate.StopFrameChooser(data);
     else
       SetCursor("CAST_CURSOR");
 
@@ -54,8 +54,8 @@ function WeakAuras.StartFrameChooser(data, path)
         if(focusName == "WorldFrame" or not focusName) then
           focusName = nil;
           local focusIsGroup = false;
-          for id, regionData in pairs(WeakAuras.regions) do
-            if(regionData.region:IsVisible() and MouseIsOver(regionData.region)) then
+          for id, regionData in pairs(OptionsPrivate.Private.regions) do
+            if(regionData.region and regionData.region:IsVisible() and MouseIsOver(regionData.region)) then
               local isGroup = regionData.regionType == "group" or regionData.regionType == "dynamicgroup";
               if (not focusName or (not isGroup and focusIsGroup)) then
                 focus = regionData.region;
@@ -68,15 +68,16 @@ function WeakAuras.StartFrameChooser(data, path)
 
         if(focus ~= oldFocus) then
           if(focusName) then
+            frameChooserBox:ClearAllPoints();
             frameChooserBox:SetPoint("bottomleft", focus, "bottomleft", -4, -4);
             frameChooserBox:SetPoint("topright", focus, "topright", 4, 4);
             frameChooserBox:Show();
           end
 
           if(focusName ~= oldFocusName) then
-            valueToPath(data, path, focusName);
+            OptionsPrivate.Private.ValueToPath(data, path, focusName);
             oldFocusName = focusName;
-            AceConfigDialog:Open("WeakAuras", frame.container);
+            WeakAuras.FillOptions()
           end
           oldFocus = focus;
         end
@@ -89,7 +90,7 @@ function WeakAuras.StartFrameChooser(data, path)
   end);
 end
 
-function WeakAuras.StopFrameChooser(data)
+function OptionsPrivate.StopFrameChooser(data)
   if(frameChooserFrame) then
     frameChooserFrame:SetScript("OnUpdate", nil);
     frameChooserBox:Hide();
