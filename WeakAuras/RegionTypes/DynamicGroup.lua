@@ -3,7 +3,7 @@ if not WeakAuras.IsLibsOK() then return end
 local AddonName = ...
 ---@class Private
 local Private = select(2, ...)
-
+-- useless comment
 ---@class WeakAuras
 local WeakAuras = WeakAuras
 local L = WeakAuras.L
