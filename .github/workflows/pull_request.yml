@@ -1,20 +1,34 @@
 name: CI-PR
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, reopened, synchronize, labeled]
 
 jobs:
+  permission_check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions-cool/check-user-permission@v2
+        id: check-permission
+        with:
+          require: write
+          username: ${{ github.triggering_actor }}
+    outputs:
+      require-result: ${{ steps.check-permission.outputs.require-result }}
+
   build:
     permissions:
       pull-requests: write
 
     runs-on: ubuntu-latest
+    needs: [permission_check]
+    if: needs.permission_check.outputs.require-result == 'true'
 
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Install and run Luacheck
         uses: nebularg/actions-luacheck@v1
