@@ -62,6 +62,7 @@ jobs:
       - id: datestr
         run: echo "datestr=${date}" >> $GITHUB_OUTPUT
 
+      - run: echo "datestr is ${{ steps.datestr.outputs.datestr }}"
       - uses: exercism/pr-commenter-action@v1.5.1
         with:
           github-token: ${{ github.token }}
