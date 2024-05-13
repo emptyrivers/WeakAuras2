@@ -60,7 +60,7 @@ jobs:
     if: ${{ needs.permission_check.outputs.require-result == 'true' && needs.build.result == 'success' && contains(github.event.pull_request.labels.*.name, '🆕 Feature Preview')}}
     steps:
       - id: datestr
-        run: echo "datestr=${date}" >> $GITHUB_OUTPUT
+        run: echo "datestr=$(date)" >> $GITHUB_OUTPUT
 
       - run: echo "datestr is ${{ steps.datestr.outputs.datestr }}"
       - uses: exercism/pr-commenter-action@v1.5.1
