@@ -87,6 +87,7 @@ WeakAuras.WA_ClassColorName = WA_ClassColorName
 -- UTF-8 Sub is pretty commonly needed
 local WA_Utf8Sub = function(input, size)
   local output = ""
+  input = tostring(input)
   if type(input) ~= "string" then
     return output
   end
@@ -126,6 +127,26 @@ local WA_Utf8Sub = function(input, size)
 end
 
 WeakAuras.WA_Utf8Sub = WA_Utf8Sub
+
+WeakAuras.PadString = function(input, padMode, padLength)
+  input = tostring(input)
+  if type(input) ~= "string" then
+    return input
+  end
+
+  local toAdd = padLength - #input
+  if toAdd <= 0 then
+    return input
+  end
+
+  if padMode == "left" then
+    return string.rep(" ", toAdd) .. input
+  elseif padMode == "right" then
+    return input .. string.rep(" ", toAdd)
+  end
+
+  return input
+end
 
 local LCG = LibStub("LibCustomGlow-1.0")
 WeakAuras.ShowOverlayGlow = LCG.ButtonGlow_Start
@@ -523,9 +544,8 @@ local overridden = {
   WeakAuras = FakeWeakAuras
 }
 
-local env_getglobal_custom
 -- WORKAROUND API which return Mixin'd values need those mixin "rawgettable" in caller's fenv #5071
-local exec_env_custom = setmetatable({
+local mixins = {
   ColorMixin = ColorMixin,
   Vector2DMixin = Vector2DMixin,
   Vector3DMixin = Vector3DMixin,
@@ -534,7 +554,10 @@ local exec_env_custom = setmetatable({
   TransmogPendingInfoMixin = TransmogPendingInfoMixin,
   TransmogLocationMixin = TransmogLocationMixin,
   PlayerLocationMixin = PlayerLocationMixin,
-},
+}
+
+local env_getglobal_custom
+local exec_env_custom = setmetatable(CopyTable(mixins),
 {
   __index = function(t, k)
     if k == "_G" then
@@ -592,7 +615,7 @@ local PrivateForBuiltIn = {
 }
 
 local env_getglobal_builtin
-local exec_env_builtin = setmetatable({},
+local exec_env_builtin = setmetatable(CopyTable(mixins),
 {
   __index = function(t, k)
     if k == "_G" then
